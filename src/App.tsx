@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
+  Calendar,
   Camera,
   Image as ImageIcon,
   Info,
@@ -12,14 +13,26 @@ import {
 } from 'lucide-react';
 import { AddVegetableForm } from './components/AddVegetableForm';
 import { CameraModal } from './components/CameraModal';
+import { MealRecordDetailModal } from './components/MealRecordDetailModal';
+import { MealRecordsPage } from './components/MealRecordsPage';
+import { SaveMealSection } from './components/SaveMealSection';
 import { VegetableCard } from './components/VegetableCard';
 import type {
   AnalysisErrorInfo,
   MealAnalysisResult,
+  MealRecord,
+  MealType,
   SessionAnalysisEntry,
   VegetableItem,
 } from './types/meal';
 import { processImageFile, type CompressedImage } from './utils/image';
+import {
+  deleteMealRecordById,
+  deriveMetadataForRecord,
+  getAllMealRecords,
+  saveNewMealRecord,
+  updateExistingMealRecord,
+} from './utils/mealDb';
 
 const HERO_IMAGE_PATH = '/src/assets/images/veggie_hero_plate_1795502319352.jpg';
 const GUIDE_IMAGE_PATH = '/src/assets/images/veggie_camera_guide_1795502319691.jpg';
@@ -28,6 +41,7 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const nativeCameraInputRef = useRef<HTMLInputElement | null>(null);
 
+  const [currentPage, setCurrentPage] = useState<'analyzer' | 'records'>('analyzer');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -37,10 +51,46 @@ export default function App() {
   const [history, setHistory] = useState<SessionAnalysisEntry[]>([]);
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
 
+  const [savedRecords, setSavedRecords] = useState<MealRecord[]>([]);
+  const [recordsLoading, setRecordsLoading] = useState(true);
+  const [recordsLoadError, setRecordsLoadError] = useState<string | null>(null);
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+
   const [heroImgFailed, setHeroImgFailed] = useState(false);
   const [guideImgFailed, setGuideImgFailed] = useState(false);
 
   const activeEntry = history.find((item) => item.id === activeEntryId) ?? null;
+  const selectedRecord = savedRecords.find((r) => r.id === selectedRecordId) ?? null;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSavedRecords() {
+      setRecordsLoading(true);
+      setRecordsLoadError(null);
+      try {
+        const loaded = await getAllMealRecords();
+        if (!cancelled) {
+          setSavedRecords(loaded);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setRecordsLoadError(
+            err instanceof Error
+              ? err.message
+              : '保存された食事記録の読み込みに失敗しました。',
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setRecordsLoading(false);
+        }
+      }
+    }
+    loadSavedRecords();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const formatTimestamp = () =>
     new Date().toLocaleTimeString('ja-JP', {
@@ -197,6 +247,7 @@ export default function App() {
         entry.id === activeEntry.id
           ? {
               ...entry,
+              hasUnsavedEditsAfterSave: Boolean(entry.savedRecordId),
               editedResult: {
                 ...entry.editedResult,
                 vegetables: entry.editedResult.vegetables.map((veg) =>
@@ -216,6 +267,7 @@ export default function App() {
         entry.id === activeEntry.id
           ? {
               ...entry,
+              hasUnsavedEditsAfterSave: Boolean(entry.savedRecordId),
               editedResult: {
                 ...entry.editedResult,
                 vegetables: entry.editedResult.vegetables.filter((veg) => veg.id !== vegId),
@@ -233,6 +285,7 @@ export default function App() {
         entry.id === activeEntry.id
           ? {
               ...entry,
+              hasUnsavedEditsAfterSave: Boolean(entry.savedRecordId),
               editedResult: {
                 ...entry.editedResult,
                 vegetables: [...entry.editedResult.vegetables, newVeg],
@@ -250,6 +303,7 @@ export default function App() {
         entry.id === activeEntry.id
           ? {
               ...entry,
+              hasUnsavedEditsAfterSave: Boolean(entry.savedRecordId),
               editedResult: {
                 ...entry.originalResult,
                 vegetables: entry.originalResult.vegetables.map((v) => ({
@@ -258,6 +312,118 @@ export default function App() {
                 })),
               },
             }
+          : entry,
+      ),
+    );
+  };
+
+  const handleSaveMealRecord = async (payload: {
+    dishName: string;
+    mealType: MealType;
+    eatenAt: string;
+  }) => {
+    if (!activeEntry) return;
+
+    const { savedVegetables, uniqueVegetableNames, nutrientNames } =
+      deriveMetadataForRecord(activeEntry.editedResult.vegetables);
+    const nowIso = new Date().toISOString();
+
+    const record: MealRecord = {
+      id: `record-${Date.now()}`,
+      schemaVersion: 1,
+      sourceAnalysisId: activeEntry.id,
+      dishName: payload.dishName,
+      dishSummary: activeEntry.editedResult.dishSummary,
+      mealType: payload.mealType,
+      eatenAt: payload.eatenAt,
+      eatenDate: payload.eatenAt.slice(0, 10),
+      imageDataUrl: activeEntry.imagePreviewUrl,
+      vegetables: savedVegetables,
+      uniqueVegetableNames,
+      nutrientNames,
+      adviceNote: activeEntry.editedResult.adviceNote,
+      cautionNote: activeEntry.editedResult.cautionNote,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+
+    try {
+      const saved = await saveNewMealRecord(record);
+      setSavedRecords((prev) =>
+        [saved, ...prev].sort((a, b) => b.eatenAt.localeCompare(a.eatenAt)),
+      );
+      setHistory((prev) =>
+        prev.map((entry) =>
+          entry.id === activeEntry.id
+            ? { ...entry, savedRecordId: saved.id, hasUnsavedEditsAfterSave: false }
+            : entry,
+        ),
+      );
+    } catch (err) {
+      if (err instanceof Error && err.message === 'DUPLICATE_ANALYSIS_RECORD') {
+        throw new Error('この解析結果はすでに記録されています（重複保存は防止されました）。');
+      }
+      throw err;
+    }
+  };
+
+  const handleUpdateSavedFromAnalyzer = async (payload: {
+    recordId: string;
+    dishName: string;
+    mealType: MealType;
+    eatenAt: string;
+  }) => {
+    if (!activeEntry) return;
+    const existing = savedRecords.find((r) => r.id === payload.recordId);
+    if (!existing) {
+      await handleSaveMealRecord(payload);
+      return;
+    }
+
+    const { savedVegetables, uniqueVegetableNames, nutrientNames } =
+      deriveMetadataForRecord(activeEntry.editedResult.vegetables);
+
+    const updated = await updateExistingMealRecord({
+      ...existing,
+      dishName: payload.dishName,
+      mealType: payload.mealType,
+      eatenAt: payload.eatenAt,
+      eatenDate: payload.eatenAt.slice(0, 10),
+      vegetables: savedVegetables,
+      uniqueVegetableNames,
+      nutrientNames,
+    });
+
+    setSavedRecords((prev) =>
+      prev
+        .map((r) => (r.id === updated.id ? updated : r))
+        .sort((a, b) => b.eatenAt.localeCompare(a.eatenAt)),
+    );
+    setHistory((prev) =>
+      prev.map((entry) =>
+        entry.id === activeEntry.id
+          ? { ...entry, hasUnsavedEditsAfterSave: false }
+          : entry,
+      ),
+    );
+  };
+
+  const handleUpdateRecordFromModal = async (updatedRecord: MealRecord) => {
+    const saved = await updateExistingMealRecord(updatedRecord);
+    setSavedRecords((prev) =>
+      prev
+        .map((r) => (r.id === saved.id ? saved : r))
+        .sort((a, b) => b.eatenAt.localeCompare(a.eatenAt)),
+    );
+  };
+
+  const handleDeleteRecordFromModal = async (recordId: string) => {
+    await deleteMealRecordById(recordId);
+    setSavedRecords((prev) => prev.filter((r) => r.id !== recordId));
+    setHistory((prev) =>
+      prev.map((entry) =>
+        entry.savedRecordId === recordId
+          ? { ...entry, savedRecordId: undefined, hasUnsavedEditsAfterSave: false }
           : entry,
       ),
     );
@@ -276,10 +442,18 @@ export default function App() {
   };
 
   const handleStartFresh = () => {
+    setCurrentPage('analyzer');
     setPendingImage(null);
     setActiveEntryId(null);
     setAnalysisError(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNavigateSection = (sectionId: string) => {
+    setCurrentPage('analyzer');
+    window.setTimeout(() => {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+    }, 50);
   };
 
   const currentPreviewUrl = pendingImage?.previewUrl ?? activeEntry?.imagePreviewUrl ?? null;
@@ -322,39 +496,82 @@ export default function App() {
           </a>
 
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[#516457]">
-            <a
-              href="#analyzer"
-              className="hover:text-[#1F2D24] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentPage('analyzer');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className={`hover:text-[#1F2D24] underline-offset-4 transition-colors whitespace-nowrap shrink-0 ${
+                currentPage === 'analyzer'
+                  ? 'text-[#1F2D24] font-semibold underline'
+                  : 'hover:underline'
+              }`}
             >
               写真を解析
-            </a>
-            <a
-              href="#how-to-read"
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentPage('records');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className={`hover:text-[#1F2D24] underline-offset-4 transition-colors whitespace-nowrap shrink-0 tabular-nums ${
+                currentPage === 'records'
+                  ? 'text-[#1F2D24] font-semibold underline'
+                  : 'hover:underline'
+              }`}
+            >
+              {savedRecords.length > 0 ? `食事記録 (${savedRecords.length})` : '食事記録'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNavigateSection('how-to-read')}
               className="hover:text-[#1F2D24] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
             >
               見方の目安
-            </a>
-            <a
-              href="#nutrition-tips"
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNavigateSection('nutrition-tips')}
               className="hover:text-[#1F2D24] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
             >
               栄養のヒント
-            </a>
+            </button>
           </nav>
 
           <div className="shrink-0">
             <button
               type="button"
-              onClick={currentPreviewUrl ? handleStartFresh : handleOpenUpload}
+              onClick={
+                currentPage === 'records' || currentPreviewUrl
+                  ? handleStartFresh
+                  : handleOpenUpload
+              }
               className="min-h-[40px] px-4 py-2 rounded-xl bg-[#2D6A4F] hover:bg-[#24563F] text-white text-xs sm:text-sm font-medium transition-colors whitespace-nowrap shrink-0"
             >
-              {currentPreviewUrl ? '別の写真を解析' : '写真を選ぶ'}
+              {currentPage === 'records' || currentPreviewUrl
+                ? '別の写真を解析'
+                : '写真を選ぶ'}
             </button>
           </div>
         </div>
       </header>
 
       <main className="flex-1">
+        {currentPage === 'records' ? (
+          <MealRecordsPage
+            records={savedRecords}
+            isLoading={recordsLoading}
+            loadError={recordsLoadError}
+            onSelectRecord={(rec) => setSelectedRecordId(rec.id)}
+            onGoToAnalyzer={() => {
+              setCurrentPage('analyzer');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        ) : (
+          <>
         {/* Main Analyzer Workspace */}
         <section id="analyzer" className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-12 sm:py-12">
           {!currentPreviewUrl ? (
@@ -762,6 +979,22 @@ export default function App() {
                           {activeEntry.editedResult.adviceNote}
                         </p>
                       </div>
+
+                      {/* Save Meal Record Section */}
+                      <SaveMealSection
+                        entry={activeEntry}
+                        existingRecord={
+                          activeEntry.savedRecordId
+                            ? savedRecords.find((r) => r.id === activeEntry.savedRecordId) ?? null
+                            : null
+                        }
+                        onSave={handleSaveMealRecord}
+                        onUpdateExisting={handleUpdateSavedFromAnalyzer}
+                        onGoToRecords={() => {
+                          setCurrentPage('records');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                      />
                     </>
                   ) : null}
                 </div>
@@ -865,6 +1098,8 @@ export default function App() {
             </div>
           </div>
         </section>
+          </>
+        )}
       </main>
 
       <footer className="border-t border-[#DCE6DA] bg-[#F6F2E7] py-6">
@@ -877,25 +1112,52 @@ export default function App() {
       </footer>
 
       {/* Mobile Sticky Bottom Thumb-Zone Action Bar (<= 64px height, < 15% mobile viewport) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#FBF8F1]/95 backdrop-blur-md border-t border-[#DCE6DA] px-4 py-2">
-        <div className="grid grid-cols-2 gap-2.5 max-w-md mx-auto">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#FBF8F1]/95 backdrop-blur-md border-t border-[#DCE6DA] px-3 py-2">
+        <div className="grid grid-cols-3 gap-2 max-w-md mx-auto">
           <button
             type="button"
-            onClick={handleOpenCamera}
+            onClick={() => {
+              setCurrentPage('analyzer');
+              handleOpenCamera();
+            }}
             disabled={isAnalyzing}
-            className="min-h-[44px] px-3 py-2 rounded-xl bg-[#2D6A4F] active:scale-[0.98] disabled:opacity-50 text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-transform whitespace-nowrap"
+            className="min-h-[44px] px-2 py-2 rounded-xl bg-[#2D6A4F] active:scale-[0.98] disabled:opacity-50 text-white text-xs font-medium inline-flex items-center justify-center gap-1 transition-transform whitespace-nowrap"
           >
-            <Camera className="w-4 h-4" />
-            <span>カメラで撮影</span>
+            <Camera className="w-4 h-4 shrink-0" />
+            <span>撮影</span>
           </button>
           <button
             type="button"
-            onClick={handleOpenUpload}
+            onClick={() => {
+              setCurrentPage('analyzer');
+              handleOpenUpload();
+            }}
             disabled={isAnalyzing}
-            className="min-h-[44px] px-3 py-2 rounded-xl border border-[#DCE6DA] bg-white active:scale-[0.98] disabled:opacity-50 text-[#2D6A4F] text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-transform whitespace-nowrap"
+            className="min-h-[44px] px-2 py-2 rounded-xl border border-[#DCE6DA] bg-white active:scale-[0.98] disabled:opacity-50 text-[#2D6A4F] text-xs font-medium inline-flex items-center justify-center gap-1 transition-transform whitespace-nowrap"
           >
-            <Upload className="w-4 h-4" />
+            <Upload className="w-4 h-4 shrink-0" />
             <span>写真を選ぶ</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentPage((prev) => (prev === 'records' ? 'analyzer' : 'records'));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className={`min-h-[44px] px-2 py-2 rounded-xl border text-xs font-medium inline-flex items-center justify-center gap-1 transition-colors whitespace-nowrap tabular-nums ${
+              currentPage === 'records'
+                ? 'bg-[#EEF5EC] border-[#2D6A4F] text-[#2D6A4F]'
+                : 'bg-white border-[#DCE6DA] text-[#1F2D24]'
+            }`}
+          >
+            <Calendar className="w-4 h-4 shrink-0" />
+            <span>
+              {currentPage === 'records'
+                ? '解析へ'
+                : savedRecords.length > 0
+                  ? `記録 (${savedRecords.length})`
+                  : '食事記録'}
+            </span>
           </button>
         </div>
       </div>
@@ -904,8 +1166,19 @@ export default function App() {
       <CameraModal
         isOpen={isCameraOpen}
         onClose={() => setIsCameraOpen(false)}
-        onCapture={analyzeImage}
+        onCapture={(image) => {
+          setCurrentPage('analyzer');
+          analyzeImage(image);
+        }}
         onFallbackFilePick={() => nativeCameraInputRef.current?.click()}
+      />
+
+      {/* Saved Meal Record Detail & Edit Modal */}
+      <MealRecordDetailModal
+        record={selectedRecord}
+        onClose={() => setSelectedRecordId(null)}
+        onUpdateRecord={handleUpdateRecordFromModal}
+        onDeleteRecord={handleDeleteRecordFromModal}
       />
     </div>
   );

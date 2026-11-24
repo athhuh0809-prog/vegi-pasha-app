@@ -369,6 +369,10 @@ async function startServer() {
                 type: Type.BOOLEAN,
                 description: '写真が食事や飲み物・食材に関するものかどうか。',
               },
+              dishName: {
+                type: Type.STRING,
+                description: '料理の簡潔な日本語名（例：彩り野菜ボウル、豚汁定食、シーザーサラダ）。15文字以内程度。',
+              },
               dishSummary: {
                 type: Type.STRING,
                 description: '写真に写っている料理全体のやさしい日本語の要約（1〜2文）。',
@@ -441,6 +445,7 @@ async function startServer() {
 
       const parsed = JSON.parse(rawText) as {
         isFoodPhoto?: boolean;
+        dishName?: string;
         dishSummary?: string;
         vegetables?: Array<{
           name?: string;
@@ -452,11 +457,20 @@ async function startServer() {
         cautionNote?: string;
       };
 
+      const dishSummary =
+        typeof parsed.dishSummary === 'string' && parsed.dishSummary.trim()
+          ? parsed.dishSummary.trim()
+          : 'お食事の写真をチェックしました。';
+
+      const dishName =
+        typeof parsed.dishName === 'string' && parsed.dishName.trim()
+          ? parsed.dishName.trim()
+          : dishSummary.slice(0, 20);
+
       const normalized = {
         isFoodPhoto: Boolean(parsed.isFoodPhoto ?? true),
-        dishSummary: typeof parsed.dishSummary === 'string' && parsed.dishSummary.trim()
-          ? parsed.dishSummary.trim()
-          : 'お食事の写真をチェックしました。',
+        dishName,
+        dishSummary,
         vegetables: Array.isArray(parsed.vegetables)
           ? parsed.vegetables.map((veg, vIdx) => ({
               id: `veg-${Date.now()}-${vIdx}`,
