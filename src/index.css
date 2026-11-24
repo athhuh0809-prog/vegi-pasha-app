@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-display: "Zen Maru Gothic", "Noto Sans JP", sans-serif;
+    --font-sans: "Noto Sans JP", system-ui, -apple-system, sans-serif;
+    --bg-cream: #FBF8F1;
+    --surface-card: #FFFFFF;
+    --surface-sage: #EEF5EC;
+    --ink-primary: #1F2D24;
+    --ink-secondary: #516457;
+    --brand-green: #2D6A4F;
+    --brand-green-hover: #24563F;
+    --accent-leaf: #40916C;
+    --border-hairline: #DCE6DA;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    background-color: var(--bg-cream);
+    color: var(--ink-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background-color: var(--bg-cream);
+    color: var(--ink-primary);
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "ベジぱしゃ — 食事写真から野菜＆栄養チェック",
+  "description": "食事の写真を撮影・アップロードするだけで、含まれる野菜の名前と主な栄養素・働きをAIがやさしく解析するWebアプリです。",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
