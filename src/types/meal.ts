@@ -1,3 +1,5 @@
+import type { VegetableCatalogEntry } from '../data/vegetableCatalog';
+
 export type ConfidenceLevel = 'confirmed' | 'estimated' | 'unknown';
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -83,4 +85,29 @@ export interface DailyMealGroup {
   records: MealRecord[];
   uniqueVegetables: string[];
   vegetableCount: number;
+}
+
+export interface EncyclopediaRecentMeal {
+  recordId: string;
+  dishName: string;
+  eatenAt: string;
+  mealType: MealType;
+}
+
+export interface EncyclopediaVegetableStatus {
+  catalog: VegetableCatalogEntry;
+  isUnlocked: boolean;
+  isNew: boolean;
+  eatCount: number;
+  firstEatenAt: string | null;
+  lastEatenAt: string | null;
+  recentMeals: EncyclopediaRecentMeal[];
+}
+
+export interface EncyclopediaData {
+  entries: EncyclopediaVegetableStatus[];
+  totalCount: number;
+  unlockedCount: number;
+  newCount: number;
+  completionRate: number;
 }

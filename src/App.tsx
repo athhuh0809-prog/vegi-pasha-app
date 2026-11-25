@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
+  BookOpen,
   Calendar,
   Camera,
   Image as ImageIcon,
@@ -17,8 +18,11 @@ import { MealRecordDetailModal } from './components/MealRecordDetailModal';
 import { MealRecordsPage } from './components/MealRecordsPage';
 import { SaveMealSection } from './components/SaveMealSection';
 import { VegetableCard } from './components/VegetableCard';
+import { VegetableDetailView } from './components/VegetableDetailView';
+import { VegetableEncyclopediaPage } from './components/VegetableEncyclopediaPage';
 import type {
   AnalysisErrorInfo,
+  EncyclopediaVegetableStatus,
   MealAnalysisResult,
   MealRecord,
   MealType,
@@ -27,9 +31,14 @@ import type {
 } from './types/meal';
 import { processImageFile, type CompressedImage } from './utils/image';
 import {
+  buildEncyclopediaData,
   deleteMealRecordById,
   deriveMetadataForRecord,
   getAllMealRecords,
+  getNewlyUnlockableVegetableNames,
+  getViewedEncyclopediaIds,
+  markVegetableViewed,
+  pruneViewedEncyclopediaIds,
   saveNewMealRecord,
   updateExistingMealRecord,
 } from './utils/mealDb';
@@ -41,7 +50,7 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const nativeCameraInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [currentPage, setCurrentPage] = useState<'analyzer' | 'records'>('analyzer');
+  const [currentPage, setCurrentPage] = useState<'analyzer' | 'records' | 'encyclopedia'>('analyzer');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -52,25 +61,39 @@ export default function App() {
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
 
   const [savedRecords, setSavedRecords] = useState<MealRecord[]>([]);
+  const [viewedVegetableIds, setViewedVegetableIds] = useState<string[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(true);
   const [recordsLoadError, setRecordsLoadError] = useState<string | null>(null);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [selectedVegetableId, setSelectedVegetableId] = useState<string | null>(null);
 
   const [heroImgFailed, setHeroImgFailed] = useState(false);
   const [guideImgFailed, setGuideImgFailed] = useState(false);
 
   const activeEntry = history.find((item) => item.id === activeEntryId) ?? null;
   const selectedRecord = savedRecords.find((r) => r.id === selectedRecordId) ?? null;
+  const encyclopediaData = useMemo(
+    () => buildEncyclopediaData(savedRecords, viewedVegetableIds),
+    [savedRecords, viewedVegetableIds],
+  );
+  const selectedEncyclopediaEntry =
+    encyclopediaData.entries.find(
+      (entry) => entry.catalog.id === selectedVegetableId && entry.isUnlocked,
+    ) ?? null;
 
   useEffect(() => {
     let cancelled = false;
-    async function loadSavedRecords() {
+    async function loadSavedData() {
       setRecordsLoading(true);
       setRecordsLoadError(null);
       try {
-        const loaded = await getAllMealRecords();
+        const [loaded, viewedIds] = await Promise.all([
+          getAllMealRecords(),
+          getViewedEncyclopediaIds(),
+        ]);
         if (!cancelled) {
           setSavedRecords(loaded);
+          setViewedVegetableIds(viewedIds);
         }
       } catch (err) {
         if (!cancelled) {
@@ -86,7 +109,7 @@ export default function App() {
         }
       }
     }
-    loadSavedRecords();
+    loadSavedData();
     return () => {
       cancelled = true;
     };
@@ -317,12 +340,26 @@ export default function App() {
     );
   };
 
+  const syncViewedAfterRecordChange = async (nextRecords: MealRecord[]) => {
+    const nextEncyclopedia = buildEncyclopediaData(nextRecords, viewedVegetableIds);
+    const unlockedIds = nextEncyclopedia.entries
+      .filter((entry) => entry.isUnlocked)
+      .map((entry) => entry.catalog.id);
+    const pruned = await pruneViewedEncyclopediaIds(unlockedIds);
+    setViewedVegetableIds(pruned);
+  };
+
   const handleSaveMealRecord = async (payload: {
     dishName: string;
     mealType: MealType;
     eatenAt: string;
-  }) => {
-    if (!activeEntry) return;
+  }): Promise<string[]> => {
+    if (!activeEntry) return [];
+
+    const newlyUnlockedNames = getNewlyUnlockableVegetableNames(
+      activeEntry.editedResult.vegetables,
+      encyclopediaData,
+    );
 
     const { savedVegetables, uniqueVegetableNames, nutrientNames } =
       deriveMetadataForRecord(activeEntry.editedResult.vegetables);
@@ -359,6 +396,7 @@ export default function App() {
             : entry,
         ),
       );
+      return newlyUnlockedNames;
     } catch (err) {
       if (err instanceof Error && err.message === 'DUPLICATE_ANALYSIS_RECORD') {
         throw new Error('この解析結果はすでに記録されています（重複保存は防止されました）。');
@@ -394,11 +432,12 @@ export default function App() {
       nutrientNames,
     });
 
-    setSavedRecords((prev) =>
-      prev
-        .map((r) => (r.id === updated.id ? updated : r))
-        .sort((a, b) => b.eatenAt.localeCompare(a.eatenAt)),
-    );
+    const nextRecords = savedRecords
+      .map((r) => (r.id === updated.id ? updated : r))
+      .sort((a, b) => b.eatenAt.localeCompare(a.eatenAt));
+    setSavedRecords(nextRecords);
+    await syncViewedAfterRecordChange(nextRecords);
+
     setHistory((prev) =>
       prev.map((entry) =>
         entry.id === activeEntry.id
@@ -410,16 +449,18 @@ export default function App() {
 
   const handleUpdateRecordFromModal = async (updatedRecord: MealRecord) => {
     const saved = await updateExistingMealRecord(updatedRecord);
-    setSavedRecords((prev) =>
-      prev
-        .map((r) => (r.id === saved.id ? saved : r))
-        .sort((a, b) => b.eatenAt.localeCompare(a.eatenAt)),
-    );
+    const nextRecords = savedRecords
+      .map((r) => (r.id === saved.id ? saved : r))
+      .sort((a, b) => b.eatenAt.localeCompare(a.eatenAt));
+    setSavedRecords(nextRecords);
+    await syncViewedAfterRecordChange(nextRecords);
   };
 
   const handleDeleteRecordFromModal = async (recordId: string) => {
     await deleteMealRecordById(recordId);
-    setSavedRecords((prev) => prev.filter((r) => r.id !== recordId));
+    const nextRecords = savedRecords.filter((r) => r.id !== recordId);
+    setSavedRecords(nextRecords);
+    await syncViewedAfterRecordChange(nextRecords);
     setHistory((prev) =>
       prev.map((entry) =>
         entry.savedRecordId === recordId
@@ -427,6 +468,14 @@ export default function App() {
           : entry,
       ),
     );
+  };
+
+  const handleSelectEncyclopediaVegetable = async (entry: EncyclopediaVegetableStatus) => {
+    setSelectedVegetableId(entry.catalog.id);
+    if (entry.isNew) {
+      const updatedViewed = await markVegetableViewed(entry.catalog.id);
+      setViewedVegetableIds(updatedViewed);
+    }
   };
 
   const handleRetryCurrent = () => {
@@ -526,17 +575,31 @@ export default function App() {
             </button>
             <button
               type="button"
+              onClick={() => {
+                setCurrentPage('encyclopedia');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className={`hover:text-[#1F2D24] underline-offset-4 transition-colors whitespace-nowrap shrink-0 tabular-nums inline-flex items-center gap-1.5 ${
+                currentPage === 'encyclopedia'
+                  ? 'text-[#1F2D24] font-semibold underline'
+                  : 'hover:underline'
+              }`}
+            >
+              <span>
+                野菜図鑑 ({encyclopediaData.unlockedCount}/{encyclopediaData.totalCount})
+              </span>
+              {encyclopediaData.newCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded bg-[#D97706] text-white text-[10px] font-bold leading-none no-underline">
+                  NEW
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
               onClick={() => handleNavigateSection('how-to-read')}
               className="hover:text-[#1F2D24] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
             >
               見方の目安
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNavigateSection('nutrition-tips')}
-              className="hover:text-[#1F2D24] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
-            >
-              栄養のヒント
             </button>
           </nav>
 
@@ -544,13 +607,13 @@ export default function App() {
             <button
               type="button"
               onClick={
-                currentPage === 'records' || currentPreviewUrl
+                currentPage !== 'analyzer' || currentPreviewUrl
                   ? handleStartFresh
                   : handleOpenUpload
               }
               className="min-h-[40px] px-4 py-2 rounded-xl bg-[#2D6A4F] hover:bg-[#24563F] text-white text-xs sm:text-sm font-medium transition-colors whitespace-nowrap shrink-0"
             >
-              {currentPage === 'records' || currentPreviewUrl
+              {currentPage !== 'analyzer' || currentPreviewUrl
                 ? '別の写真を解析'
                 : '写真を選ぶ'}
             </button>
@@ -565,6 +628,16 @@ export default function App() {
             isLoading={recordsLoading}
             loadError={recordsLoadError}
             onSelectRecord={(rec) => setSelectedRecordId(rec.id)}
+            onGoToAnalyzer={() => {
+              setCurrentPage('analyzer');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        ) : currentPage === 'encyclopedia' ? (
+          <VegetableEncyclopediaPage
+            data={encyclopediaData}
+            isLoading={recordsLoading}
+            onSelectVegetable={handleSelectEncyclopediaVegetable}
             onGoToAnalyzer={() => {
               setCurrentPage('analyzer');
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -994,6 +1067,10 @@ export default function App() {
                           setCurrentPage('records');
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
+                        onGoToEncyclopedia={() => {
+                          setCurrentPage('encyclopedia');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
                       />
                     </>
                   ) : null}
@@ -1112,8 +1189,8 @@ export default function App() {
       </footer>
 
       {/* Mobile Sticky Bottom Thumb-Zone Action Bar (<= 64px height, < 15% mobile viewport) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#FBF8F1]/95 backdrop-blur-md border-t border-[#DCE6DA] px-3 py-2">
-        <div className="grid grid-cols-3 gap-2 max-w-md mx-auto">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#FBF8F1]/95 backdrop-blur-md border-t border-[#DCE6DA] px-2.5 py-2">
+        <div className="grid grid-cols-4 gap-1.5 max-w-md mx-auto">
           <button
             type="button"
             onClick={() => {
@@ -1121,9 +1198,9 @@ export default function App() {
               handleOpenCamera();
             }}
             disabled={isAnalyzing}
-            className="min-h-[44px] px-2 py-2 rounded-xl bg-[#2D6A4F] active:scale-[0.98] disabled:opacity-50 text-white text-xs font-medium inline-flex items-center justify-center gap-1 transition-transform whitespace-nowrap"
+            className="min-h-[44px] px-1.5 py-1.5 rounded-xl bg-[#2D6A4F] active:scale-[0.98] disabled:opacity-50 text-white text-[11px] font-medium inline-flex items-center justify-center gap-1 transition-transform whitespace-nowrap"
           >
-            <Camera className="w-4 h-4 shrink-0" />
+            <Camera className="w-3.5 h-3.5 shrink-0" />
             <span>撮影</span>
           </button>
           <button
@@ -1133,9 +1210,9 @@ export default function App() {
               handleOpenUpload();
             }}
             disabled={isAnalyzing}
-            className="min-h-[44px] px-2 py-2 rounded-xl border border-[#DCE6DA] bg-white active:scale-[0.98] disabled:opacity-50 text-[#2D6A4F] text-xs font-medium inline-flex items-center justify-center gap-1 transition-transform whitespace-nowrap"
+            className="min-h-[44px] px-1.5 py-1.5 rounded-xl border border-[#DCE6DA] bg-white active:scale-[0.98] disabled:opacity-50 text-[#2D6A4F] text-[11px] font-medium inline-flex items-center justify-center gap-1 transition-transform whitespace-nowrap"
           >
-            <Upload className="w-4 h-4 shrink-0" />
+            <Upload className="w-3.5 h-3.5 shrink-0" />
             <span>写真を選ぶ</span>
           </button>
           <button
@@ -1144,20 +1221,44 @@ export default function App() {
               setCurrentPage((prev) => (prev === 'records' ? 'analyzer' : 'records'));
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className={`min-h-[44px] px-2 py-2 rounded-xl border text-xs font-medium inline-flex items-center justify-center gap-1 transition-colors whitespace-nowrap tabular-nums ${
+            className={`min-h-[44px] px-1.5 py-1.5 rounded-xl border text-[11px] font-medium inline-flex items-center justify-center gap-1 transition-colors whitespace-nowrap tabular-nums ${
               currentPage === 'records'
                 ? 'bg-[#EEF5EC] border-[#2D6A4F] text-[#2D6A4F]'
                 : 'bg-white border-[#DCE6DA] text-[#1F2D24]'
             }`}
           >
-            <Calendar className="w-4 h-4 shrink-0" />
+            <Calendar className="w-3.5 h-3.5 shrink-0" />
             <span>
               {currentPage === 'records'
                 ? '解析へ'
                 : savedRecords.length > 0
-                  ? `記録 (${savedRecords.length})`
+                  ? `記録(${savedRecords.length})`
                   : '食事記録'}
             </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentPage((prev) => (prev === 'encyclopedia' ? 'analyzer' : 'encyclopedia'));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className={`relative min-h-[44px] px-1.5 py-1.5 rounded-xl border text-[11px] font-medium inline-flex items-center justify-center gap-1 transition-colors whitespace-nowrap tabular-nums ${
+              currentPage === 'encyclopedia'
+                ? 'bg-[#EEF5EC] border-[#2D6A4F] text-[#2D6A4F]'
+                : 'bg-white border-[#DCE6DA] text-[#1F2D24]'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5 shrink-0" />
+            <span>
+              {currentPage === 'encyclopedia'
+                ? '解析へ'
+                : `図鑑(${encyclopediaData.unlockedCount})`}
+            </span>
+            {encyclopediaData.newCount > 0 && currentPage !== 'encyclopedia' && (
+              <span className="absolute -top-1.5 right-1 px-1 py-0.5 rounded bg-[#D97706] text-white text-[9px] font-bold leading-none">
+                NEW
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -1179,6 +1280,13 @@ export default function App() {
         onClose={() => setSelectedRecordId(null)}
         onUpdateRecord={handleUpdateRecordFromModal}
         onDeleteRecord={handleDeleteRecordFromModal}
+      />
+
+      {/* Vegetable Encyclopedia Detail Modal / Sub-View */}
+      <VegetableDetailView
+        entry={selectedEncyclopediaEntry}
+        onClose={() => setSelectedVegetableId(null)}
+        onSelectMealRecord={(recordId) => setSelectedRecordId(recordId)}
       />
     </div>
   );

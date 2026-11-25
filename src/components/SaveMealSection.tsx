@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookmarkCheck, Calendar, Check, Loader2, NotebookPen } from 'lucide-react';
+import { BookOpen, BookmarkCheck, Calendar, Check, Loader2, NotebookPen, Sparkles } from 'lucide-react';
 import type { MealType, SessionAnalysisEntry } from '../types/meal';
 import {
   getDefaultMealTypeByHour,
@@ -13,7 +13,7 @@ interface SaveMealSectionProps {
     dishName: string;
     mealType: MealType;
     eatenAt: string;
-  }) => Promise<void>;
+  }) => Promise<string[]>;
   onUpdateExisting: (payload: {
     recordId: string;
     dishName: string;
@@ -21,6 +21,7 @@ interface SaveMealSectionProps {
     eatenAt: string;
   }) => Promise<void>;
   onGoToRecords: () => void;
+  onGoToEncyclopedia: () => void;
   existingRecord?: {
     id: string;
     dishName: string;
@@ -36,6 +37,7 @@ export function SaveMealSection({
   onSave,
   onUpdateExisting,
   onGoToRecords,
+  onGoToEncyclopedia,
   existingRecord,
 }: SaveMealSectionProps) {
   const defaultDishName =
@@ -53,6 +55,7 @@ export function SaveMealSection({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [justUpdated, setJustUpdated] = useState(false);
+  const [justUnlockedNames, setJustUnlockedNames] = useState<string[]>([]);
 
   useEffect(() => {
     setDishName(existingRecord?.dishName ?? defaultDishName);
@@ -60,6 +63,7 @@ export function SaveMealSection({
     setEatenAt(existingRecord?.eatenAt ?? toLocalDateTimeInputValue());
     setSaveError(null);
     setJustUpdated(false);
+    setJustUnlockedNames([]);
   }, [entry.id, existingRecord?.id]);
 
   const totalNutrients = entry.editedResult.vegetables.reduce(
@@ -101,11 +105,12 @@ export function SaveMealSection({
         });
         setJustUpdated(true);
       } else {
-        await onSave({
+        const unlocked = await onSave({
           dishName: cleanDishName,
           mealType,
           eatenAt: cleanEatenAt,
         });
+        setJustUnlockedNames(unlocked);
       }
     } catch (err) {
       setSaveError(
@@ -218,23 +223,47 @@ export function SaveMealSection({
         )}
 
         {isSaved && !needsUpdate ? (
-          <div className="rounded-2xl bg-[#EEF5EC] border border-[#DCE6DA] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-start gap-2.5 text-xs sm:text-sm text-[#1F2D24]">
-              <Check className="w-4 h-4 text-[#2D6A4F] shrink-0 mt-0.5" />
-              <span>
-                {justUpdated
-                  ? '修正内容で食事記録を更新しました。重複保存はされません。'
-                  : 'この解析結果はブラウザ内に保存済みです（重複保存はされません）。'}
-              </span>
+          <div className="rounded-2xl bg-[#EEF5EC] border border-[#DCE6DA] p-4 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5 text-xs sm:text-sm text-[#1F2D24]">
+                <Check className="w-4 h-4 text-[#2D6A4F] shrink-0 mt-0.5" />
+                <span>
+                  {justUpdated
+                    ? '修正内容で食事記録を更新し、野菜図鑑にも反映しました。'
+                    : 'この解析結果はブラウザ内に保存済みです（重複保存はされません）。'}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={onGoToEncyclopedia}
+                  className="min-h-[44px] px-3.5 py-2 rounded-xl border border-[#DCE6DA] bg-white hover:bg-[#FBF8F1] text-[#2D6A4F] text-xs sm:text-sm font-medium inline-flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>野菜図鑑を見る</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onGoToRecords}
+                  className="min-h-[44px] px-4 py-2 rounded-xl bg-[#2D6A4F] hover:bg-[#24563F] text-white text-xs sm:text-sm font-medium inline-flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap"
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>食事記録を見る</span>
+                </button>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={onGoToRecords}
-              className="min-h-[44px] px-4 py-2 rounded-xl bg-[#2D6A4F] hover:bg-[#24563F] text-white text-xs sm:text-sm font-medium inline-flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
-            >
-              <Calendar className="w-4 h-4" />
-              <span>食事記録を見る</span>
-            </button>
+
+            {justUnlockedNames.length > 0 && (
+              <div className="rounded-xl bg-white border border-[#DCE6DA] px-3.5 py-2.5 flex items-center gap-2 text-xs sm:text-sm text-[#1F2D24]">
+                <Sparkles className="w-4 h-4 text-[#D97706] shrink-0" />
+                <span>
+                  野菜図鑑に新しく登録されました：
+                  <strong className="font-bold text-[#2D6A4F] ml-1">
+                    {justUnlockedNames.join('・')}
+                  </strong>
+                </span>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">

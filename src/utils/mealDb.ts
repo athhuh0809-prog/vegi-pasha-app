@@ -1,5 +1,13 @@
+import {
+  getCanonicalVegetableName,
+  resolveCatalogVegetable,
+  VEGETABLE_CATALOG,
+} from '../data/vegetableCatalog';
 import type {
   DailyMealGroup,
+  EncyclopediaData,
+  EncyclopediaRecentMeal,
+  EncyclopediaVegetableStatus,
   MealRecord,
   MealType,
   SavedVegetableEntry,
@@ -7,8 +15,10 @@ import type {
 } from '../types/meal';
 
 const DB_NAME = 'vegepasha_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_MEAL_RECORDS = 'mealRecords';
+const STORE_ENCYCLOPEDIA_META = 'encyclopediaMeta';
+const VIEWED_IDS_KEY = 'viewedVegetableIds';
 
 export const MEAL_TYPE_LABELS: Record<MealType, string> = {
   breakfast: '朝食',
@@ -25,11 +35,7 @@ export const MEAL_TYPE_ORDER: Record<MealType, number> = {
 };
 
 export function normalizeVegetableName(name: string): string {
-  return name
-    .trim()
-    .replace(/\s+/g, ' ')
-    .replace(/[（(].*?[)）]/g, '')
-    .trim();
+  return getCanonicalVegetableName(name);
 }
 
 export function deriveMetadataForRecord(vegetables: VegetableItem[]): {
@@ -39,11 +45,12 @@ export function deriveMetadataForRecord(vegetables: VegetableItem[]): {
 } {
   const savedVegetables: SavedVegetableEntry[] = vegetables.map((veg) => {
     const cleanName = veg.name.trim() || '不明な野菜';
-    const normalized = normalizeVegetableName(cleanName) || cleanName;
+    const isIdentified = veg.confidence !== 'unknown' || veg.isUserEdited || veg.isUserAdded;
+    const normalized = isIdentified ? getCanonicalVegetableName(cleanName) : cleanName;
     return {
       ...veg,
       name: cleanName,
-      normalizedName: normalized,
+      normalizedName: normalized || cleanName,
     };
   });
 
@@ -88,6 +95,9 @@ function openDatabase(): Promise<IDBDatabase> {
         store.createIndex('eatenAt', 'eatenAt', { unique: false });
         store.createIndex('sourceAnalysisId', 'sourceAnalysisId', { unique: true });
         store.createIndex('mealType', 'mealType', { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE_ENCYCLOPEDIA_META)) {
+        db.createObjectStore(STORE_ENCYCLOPEDIA_META, { keyPath: 'key' });
       }
     };
 
@@ -213,7 +223,9 @@ export function groupRecordsByDate(records: MealRecord[]): DailyMealGroup[] {
     const vegSet = new Set<string>();
     for (const rec of dayRecords) {
       for (const veg of rec.vegetables) {
-        const label = veg.normalizedName || normalizeVegetableName(veg.name) || veg.name.trim();
+        const isIdentified = veg.confidence !== 'unknown' || veg.isUserEdited || veg.isUserAdded;
+        const rawLabel = veg.normalizedName || veg.name.trim();
+        const label = isIdentified ? getCanonicalVegetableName(rawLabel) : rawLabel;
         if (label) vegSet.add(label);
       }
     }
@@ -246,9 +258,14 @@ export function getVegetableEncyclopediaSummary(records: MealRecord[]): Array<{
   >();
 
   for (const rec of records) {
+    const seenInMeal = new Set<string>();
     for (const veg of rec.vegetables) {
-      const key = veg.normalizedName || normalizeVegetableName(veg.name) || veg.name.trim();
-      if (!key) continue;
+      const isIdentified = veg.confidence !== 'unknown' || veg.isUserEdited || veg.isUserAdded;
+      const raw = veg.normalizedName || veg.name.trim();
+      const key = isIdentified ? getCanonicalVegetableName(raw) : raw;
+      if (!key || seenInMeal.has(key)) continue;
+      seenInMeal.add(key);
+
       const existing = summaryMap.get(key) ?? {
         count: 0,
         nutrients: new Set<string>(),
@@ -273,6 +290,171 @@ export function getVegetableEncyclopediaSummary(records: MealRecord[]): Array<{
       lastEatenAt: info.lastEatenAt,
     }))
     .sort((a, b) => b.count - a.count);
+}
+
+interface EncyclopediaMetaRow {
+  key: string;
+  ids: string[];
+}
+
+export async function getViewedEncyclopediaIds(): Promise<string[]> {
+  const db = await openDatabase();
+  try {
+    return await new Promise<string[]>((resolve, reject) => {
+      const tx = db.transaction(STORE_ENCYCLOPEDIA_META, 'readonly');
+      const store = tx.objectStore(STORE_ENCYCLOPEDIA_META);
+      const req = store.get(VIEWED_IDS_KEY);
+      req.onsuccess = () => {
+        const row = req.result as EncyclopediaMetaRow | undefined;
+        resolve(Array.isArray(row?.ids) ? row.ids : []);
+      };
+      req.onerror = () =>
+        reject(req.error ?? new Error('野菜図鑑の既読情報の読み込みに失敗しました。'));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+async function saveViewedEncyclopediaIds(ids: string[]): Promise<string[]> {
+  const uniqueIds = Array.from(new Set(ids));
+  const db = await openDatabase();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_ENCYCLOPEDIA_META, 'readwrite');
+      const store = tx.objectStore(STORE_ENCYCLOPEDIA_META);
+      const req = store.put({ key: VIEWED_IDS_KEY, ids: uniqueIds } satisfies EncyclopediaMetaRow);
+      req.onsuccess = () => resolve();
+      req.onerror = () =>
+        reject(req.error ?? new Error('野菜図鑑の既読情報の保存に失敗しました。'));
+    });
+    return uniqueIds;
+  } finally {
+    db.close();
+  }
+}
+
+export async function markVegetableViewed(vegetableId: string): Promise<string[]> {
+  const current = await getViewedEncyclopediaIds();
+  if (current.includes(vegetableId)) return current;
+  return saveViewedEncyclopediaIds([...current, vegetableId]);
+}
+
+export async function pruneViewedEncyclopediaIds(
+  unlockedIds: string[],
+): Promise<string[]> {
+  const current = await getViewedEncyclopediaIds();
+  const unlockedSet = new Set(unlockedIds);
+  const pruned = current.filter((id) => unlockedSet.has(id));
+  if (pruned.length === current.length) return current;
+  return saveViewedEncyclopediaIds(pruned);
+}
+
+export function buildEncyclopediaData(
+  records: MealRecord[],
+  viewedIds: string[],
+): EncyclopediaData {
+  const statsById = new Map<
+    string,
+    {
+      eatCount: number;
+      firstEatenAt: string | null;
+      lastEatenAt: string | null;
+      recentMeals: EncyclopediaRecentMeal[];
+    }
+  >();
+
+  for (const rec of records) {
+    const matchedIdsInMeal = new Set<string>();
+    for (const veg of rec.vegetables) {
+      const isIdentified = veg.confidence !== 'unknown' || veg.isUserEdited || veg.isUserAdded;
+      if (!isIdentified) continue;
+      const matched =
+        resolveCatalogVegetable(veg.name) ?? resolveCatalogVegetable(veg.normalizedName);
+      if (matched) {
+        matchedIdsInMeal.add(matched.id);
+      }
+    }
+
+    for (const catId of matchedIdsInMeal) {
+      const current = statsById.get(catId) ?? {
+        eatCount: 0,
+        firstEatenAt: null,
+        lastEatenAt: null,
+        recentMeals: [],
+      };
+      current.eatCount += 1;
+      if (!current.firstEatenAt || rec.eatenAt < current.firstEatenAt) {
+        current.firstEatenAt = rec.eatenAt;
+      }
+      if (!current.lastEatenAt || rec.eatenAt > current.lastEatenAt) {
+        current.lastEatenAt = rec.eatenAt;
+      }
+      current.recentMeals.push({
+        recordId: rec.id,
+        dishName: rec.dishName,
+        eatenAt: rec.eatenAt,
+        mealType: rec.mealType,
+      });
+      statsById.set(catId, current);
+    }
+  }
+
+  const viewedSet = new Set(viewedIds);
+  const entries: EncyclopediaVegetableStatus[] = VEGETABLE_CATALOG.map((catalog) => {
+    const stat = statsById.get(catalog.id);
+    const eatCount = stat?.eatCount ?? 0;
+    const isUnlocked = eatCount > 0;
+    const isNew = isUnlocked && !viewedSet.has(catalog.id);
+    const recentMeals = stat
+      ? [...stat.recentMeals].sort((a, b) => b.eatenAt.localeCompare(a.eatenAt))
+      : [];
+
+    return {
+      catalog,
+      isUnlocked,
+      isNew,
+      eatCount,
+      firstEatenAt: stat?.firstEatenAt ?? null,
+      lastEatenAt: stat?.lastEatenAt ?? null,
+      recentMeals,
+    };
+  });
+
+  const totalCount = VEGETABLE_CATALOG.length;
+  const unlockedCount = entries.filter((e) => e.isUnlocked).length;
+  const newCount = entries.filter((e) => e.isNew).length;
+  const completionRate = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0;
+
+  return {
+    entries,
+    totalCount,
+    unlockedCount,
+    newCount,
+    completionRate,
+  };
+}
+
+export function getNewlyUnlockableVegetableNames(
+  vegetables: VegetableItem[],
+  currentEncyclopedia: EncyclopediaData,
+): string[] {
+  const unlockedSet = new Set(
+    currentEncyclopedia.entries.filter((e) => e.isUnlocked).map((e) => e.catalog.id),
+  );
+  const newNames: string[] = [];
+  const seen = new Set<string>();
+
+  for (const veg of vegetables) {
+    const isIdentified = veg.confidence !== 'unknown' || veg.isUserEdited || veg.isUserAdded;
+    if (!isIdentified) continue;
+    const matched = resolveCatalogVegetable(veg.name);
+    if (matched && !unlockedSet.has(matched.id) && !seen.has(matched.id)) {
+      seen.add(matched.id);
+      newNames.push(matched.name);
+    }
+  }
+  return newNames;
 }
 
 export function getDefaultMealTypeByHour(date = new Date()): MealType {
