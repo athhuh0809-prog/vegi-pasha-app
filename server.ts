@@ -47,6 +47,70 @@ function normalizeConfidence(value: unknown): 'confirmed' | 'estimated' | 'unkno
   return 'estimated';
 }
 
+const EXCLUDED_TUBER_OR_FRUIT_PATTERNS = [
+  'じゃがいも',
+  'じゃが芋',
+  '新じゃが',
+  '馬鈴薯',
+  'ばれいしょ',
+  'めーくいん',
+  '男爵いも',
+  'きたあかり',
+  'いんかのめざめ',
+  'さつまいも',
+  'さつま芋',
+  '薩摩芋',
+  'やきいも',
+  '焼き芋',
+  'べにはるか',
+  'なるときんとき',
+  'あんのういも',
+  'しるくすいーと',
+  'すいーとぽてと',
+  'さといも',
+  '里芋',
+  '里いも',
+  'ながいも',
+  '長芋',
+  '長いも',
+  'やまいも',
+  '山芋',
+  'やまのいも',
+  '大和芋',
+  'あぼかど',
+  'あぼがど',
+  'avocado',
+  'potato',
+  'sweetpotato',
+];
+
+const EXCLUDED_EXACT_ONLY = new Set(['ぽてと', '男爵', 'とろろ', 'ぽてとさらだ']);
+
+function toHiragana(text: string): string {
+  return text.replace(/[\u30a1-\u30f6]/g, (ch) =>
+    String.fromCharCode(ch.charCodeAt(0) - 0x60),
+  );
+}
+
+function isExcludedTuberOrFruit(rawName: string): boolean {
+  const cleaned = rawName
+    .trim()
+    .replace(/[（(].*?[)）]/g, '')
+    .replace(/[・／/\s]+/g, '')
+    .toLowerCase();
+  if (!cleaned) return false;
+  const hira = toHiragana(cleaned);
+
+  if (EXCLUDED_EXACT_ONLY.has(hira)) {
+    return true;
+  }
+
+  return EXCLUDED_TUBER_OR_FRUIT_PATTERNS.some((pattern) => {
+    const pHira = toHiragana(pattern.toLowerCase());
+    return hira.includes(pHira);
+  });
+}
+
 function stripMarkdownJsonFences(text: string): string {
   const trimmed = text.trim();
   if (trimmed.startsWith('```')) {
@@ -332,12 +396,13 @@ async function startServer() {
 【重要なルール】
 1. 固定のテンプレートではなく、必ず「この写真に実際に写っているもの」だけに基づいて回答してください。
 2. 食事・料理ではない写真の場合、または野菜がまったく見当たらない料理（例：素うどん、白ご飯のみ等）の場合は、無理に野菜を創作せず、vegetablesを空配列 [] にして、dishSummary と adviceNote で正直かつやさしく説明してください。
-3. 野菜の名前は必ず日本語で表記してください（例：ブロッコリー、ミニトマト、にんじん、キャベツ、ほうれん草 など）。きのこ類や豆類など植物性の副菜・具材が見分けられる場合も含めて構いません。
-4. 見た目が曖昧・細かく刻まれている・ソースやスープで隠れている・ピントが甘いなど、確実な判別が難しい野菜は、決して断定せず confidence を "estimated"（推定）または "unknown"（不明）にし、uncertaintyReason に「刻まれているため推定です」「ドレッシングに隠れて判別が難しいです」などの理由を短く書いてください。確実に分かる野菜は confidence を "confirmed" にしてください。
-5. 不明な場合は野菜名を「不明な緑の葉物野菜」「不明な根菜」のように表現してください。
-6. 各野菜につき、代表的な栄養素を2〜4個挙げ、それぞれ「name（栄養素名）」と「benefit（体へのやさしい働き・役割）」を親しみやすい日本語で書いてください。
-7. 【厳守】写真だけでは正確なグラム数、摂取量、栄養素の含有量（mg、kcalなど）や「1日分の〇%」といった数値は判断できないため、絶対に断定しないでください。「〜が含まれていると考えられます」「〜をサポートするとされています」のような表現を使ってください。
-8. cautionNote には「写真からの見た目による推定であり、調理法や量によって栄養価は異なること」「違う場合は編集できること」を短くまとめてください。`;
+3. 野菜の名前は必ず日本語で表記してください（例：ブロッコリー、トマト、ミニトマト、にんじん、キャベツ、ほうれん草、チンゲン菜、春菊、サニーレタス、カリフラワー、セロリ、ゴーヤ、たけのこ、そら豆、さやいんげん、絹さや、グリーンピース、大葉、にんにく、しょうが、みょうが、三つ葉、パセリ、菜の花 など）。薬味・香味野菜（大葉、みょうが、三つ葉、パセリ、しょうが、にんにく）や豆・山菜系野菜（そら豆、さやいんげん、絹さや、グリーンピース、たけのこ）が写っている場合も丁寧に見つけてください。
+4. 【重要・対象外】このアプリは野菜不足の解消を目的としているため、いも類（じゃがいも、さつまいも、里芋、長芋・山芋など）および果実類（アボカドや果物全般）は野菜としてカウントせず、vegetables 配列には絶対に含めないでください（料理全体として触れる場合は dishSummary や adviceNote に書くだけにしてください）。
+5. 見た目が曖昧・細かく刻まれている・ソースやスープで隠れている・ピントが甘いなど、確実な判別が難しい野菜は、決して断定せず confidence を "estimated"（推定）または "unknown"（不明）にし、uncertaintyReason に「刻まれているため推定です」「ドレッシングに隠れて判別が難しいです」などの理由を短く書いてください。確実に分かる野菜は confidence を "confirmed" にしてください。
+6. 不明な場合は野菜名を「不明な緑の葉物野菜」「不明な根菜」のように表現してください。
+7. 各野菜につき、代表的な栄養素を2〜4個挙げ、それぞれ「name（栄養素名）」と「benefit（体へのやさしい働き・役割）」を親しみやすい日本語で書いてください。
+8. 【厳守】写真だけでは正確なグラム数、摂取量、栄養素の含有量（mg、kcalなど）や「1日分の〇%」といった数値は判断できないため、絶対に断定しないでください。「〜が含まれていると考えられます」「〜をサポートするとされています」のような表現を使ってください。
+9. cautionNote には「写真からの見た目による推定であり、調理法や量によって栄養価は異なること」「違う場合は編集できること」を短くまとめてください。`;
 
       const { response, attemptedModels } = await generateWithRetryAndFallback(ai, (model) => ({
         model,
@@ -472,27 +537,32 @@ async function startServer() {
         dishName,
         dishSummary,
         vegetables: Array.isArray(parsed.vegetables)
-          ? parsed.vegetables.map((veg, vIdx) => ({
-              id: `veg-${Date.now()}-${vIdx}`,
-              name: typeof veg.name === 'string' && veg.name.trim() ? veg.name.trim() : '不明な野菜',
-              confidence: normalizeConfidence(veg.confidence),
-              uncertaintyReason:
-                typeof veg.uncertaintyReason === 'string' && veg.uncertaintyReason.trim()
-                  ? veg.uncertaintyReason.trim()
-                  : undefined,
-              nutrients: Array.isArray(veg.nutrients)
-                ? veg.nutrients
-                    .filter((n) => typeof n?.name === 'string' && n.name.trim().length > 0)
-                    .map((n, nIdx) => ({
-                      id: `nut-${Date.now()}-${vIdx}-${nIdx}`,
-                      name: String(n.name).trim(),
-                      benefit:
-                        typeof n.benefit === 'string' && n.benefit.trim()
-                          ? n.benefit.trim()
-                          : '日々の健やかな体調づくりに役立つとされています。',
-                    }))
-                : [],
-            }))
+          ? parsed.vegetables
+              .filter(
+                (veg) =>
+                  typeof veg?.name !== 'string' || !isExcludedTuberOrFruit(veg.name),
+              )
+              .map((veg, vIdx) => ({
+                id: `veg-${Date.now()}-${vIdx}`,
+                name: typeof veg.name === 'string' && veg.name.trim() ? veg.name.trim() : '不明な野菜',
+                confidence: normalizeConfidence(veg.confidence),
+                uncertaintyReason:
+                  typeof veg.uncertaintyReason === 'string' && veg.uncertaintyReason.trim()
+                    ? veg.uncertaintyReason.trim()
+                    : undefined,
+                nutrients: Array.isArray(veg.nutrients)
+                  ? veg.nutrients
+                      .filter((n) => typeof n?.name === 'string' && n.name.trim().length > 0)
+                      .map((n, nIdx) => ({
+                        id: `nut-${Date.now()}-${vIdx}-${nIdx}`,
+                        name: String(n.name).trim(),
+                        benefit:
+                          typeof n.benefit === 'string' && n.benefit.trim()
+                            ? n.benefit.trim()
+                            : '日々の健やかな体調づくりに役立つとされています。',
+                      }))
+                  : [],
+              }))
           : [],
         adviceNote:
           typeof parsed.adviceNote === 'string' && parsed.adviceNote.trim()

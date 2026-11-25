@@ -22,7 +22,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
     name: 'トマト',
     category: '実もの',
     season: '6月〜8月（夏・通年流通）',
-    shortNote: 'リコピンたっぷりの赤い定番野菜。生でも加熱してもおいしく食べられます。',
+    shortNote: 'リコピンたっぷりの赤い定番野菜。ミニトマトもトマトと同じ仲間として登録されます。',
     nutrients: [
       { name: 'リコピン', benefit: '体がサビつくのを防ぎ、若々しいコンディションを守るサポートをします。' },
       { name: 'ビタミンC', benefit: 'お肌の調子を整え、日々の元気を保つ働きがあるとされています。' },
@@ -139,15 +139,15 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
     shortNote: 'シャキシャキ食感が楽しいサラダの定番。スープやチャーハンに入れても美味です。',
     nutrients: [
       { name: '食物繊維', benefit: 'お腹のリズムを整えるのに役立ちます。' },
-      { name: 'β-カロテン', benefit: 'サニーレタスなどの濃い葉には特に多く含まれ、健康維持を助けます。' },
       { name: 'カリウム', benefit: '体の水分バランスを整えるサポートをします。' },
+      { name: 'ビタミンE', benefit: '日々の健やかなコンディションを保つ働きが期待されます。' },
     ],
     recommendedDishes: [
       'レタスとわかめのチョレギサラダ',
       'しゃきしゃきレタスチャーハン',
       '豚しゃぶのレタス包み',
     ],
-    aliases: ['レタス', 'れたす', 'サニーレタス', 'グリーンリーフ', 'フリルレタス', 'ロメインレタス', 'リーフレタス', '玉レタス'],
+    aliases: ['レタス', 'れたす', 'グリーンリーフ', 'フリルレタス', 'ロメインレタス', 'リーフレタス', '玉レタス'],
   },
   {
     id: 'cucumber',
@@ -159,7 +159,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
     nutrients: [
       { name: 'カリウム', benefit: '余分な塩分を外に出しやすくし、すっきり感をサポートします。' },
       { name: 'ビタミンK', benefit: '健やかなめぐりや骨の健康に関わるビタミンです。' },
-      { name: '水分・食物繊維', benefit: 'みずみずしい食感で食事にさっぱり感を添えてくれます。' },
+      { name: '食物繊維', benefit: 'みずみずしい食感で食事にさっぱり感を添えてくれます。' },
     ],
     recommendedDishes: [
       'たたききゅうりの梅おかか和え',
@@ -188,46 +188,8 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
     aliases: ['たまねぎ', '玉ねぎ', 'タマネギ', '玉葱', '新玉ねぎ', '新玉', '紫玉ねぎ', '赤玉ねぎ', 'アーリーレッド', 'ペコロス'],
   },
   {
-    id: 'potato',
-    number: 10,
-    name: 'じゃがいも',
-    category: '根菜',
-    season: '5月〜6月・9月〜11月',
-    shortNote: '加熱しても壊れにくいビタミンCを含むホクホクの野菜。主菜にも副菜にもなります。',
-    nutrients: [
-      { name: 'ビタミンC', benefit: 'でんぷんに守られて加熱に強く、肌や体調のケアに役立ちます。' },
-      { name: 'カリウム', benefit: '体の中の塩分バランスを整えるサポートをします。' },
-      { name: '食物繊維', benefit: 'お腹の調子を整え、腹持ちをよくしてくれます。' },
-    ],
-    recommendedDishes: [
-      'じゃがいもとベーコンのジャーマンポテト',
-      'ほくほく肉じゃが',
-      '手作りポテトサラダ',
-    ],
-    aliases: ['じゃがいも', 'ジャガイモ', '馬鈴薯', '新じゃが', '新じゃがいも', 'メークイン', '男爵いも', 'キタアカリ'],
-  },
-  {
-    id: 'sweet_potato',
-    number: 11,
-    name: 'さつまいも',
-    category: '根菜',
-    season: '9月〜11月（秋）',
-    shortNote: '自然な甘みが魅力。おやつにもごはんのおかずにもなる、食物繊維たっぷりの芋です。',
-    nutrients: [
-      { name: '食物繊維', benefit: 'お腹の中をきれいに保ち、すっきりとした毎日を支えます。' },
-      { name: 'ビタミンC', benefit: '美容と健康づくりを応援する栄養素です。' },
-      { name: 'ビタミンE', benefit: '若々しさを保つための抗酸化作用が期待されます。' },
-    ],
-    recommendedDishes: [
-      'さつまいもと鶏肉の甘辛炒め',
-      'ほっこり大学いも',
-      'さつまいもと玉ねぎのお味噌汁',
-    ],
-    aliases: ['さつまいも', 'サツマイモ', '薩摩芋', 'さつま芋', '焼き芋', '紅はるか', '鳴門金時', '安納芋'],
-  },
-  {
     id: 'pumpkin',
-    number: 12,
+    number: 10,
     name: 'かぼちゃ',
     category: '実もの',
     season: '9月〜12月（秋冬がほくほく）',
@@ -246,7 +208,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'eggplant',
-    number: 13,
+    number: 11,
     name: 'なす',
     category: '実もの',
     season: '6月〜9月（夏・秋なす）',
@@ -265,7 +227,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'bell_pepper',
-    number: 14,
+    number: 12,
     name: 'ピーマン',
     category: '実もの',
     season: '6月〜8月（夏）',
@@ -284,14 +246,14 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'paprika',
-    number: 15,
+    number: 13,
     name: 'パプリカ',
     category: '実もの',
     season: '6月〜9月（夏）',
     shortNote: '肉厚で甘みがあり、赤・黄・オレンジと食卓を一気にカラフルにしてくれます。',
     nutrients: [
       { name: 'ビタミンC', benefit: '野菜の中でもトップクラスの含有量で、美容と健康を応援します。' },
-      { name: 'β-カロテン / カプサンチン', benefit: 'カラフルな色素成分が、健やかなコンディションを守ります。' },
+      { name: 'β-カロテン', benefit: 'カラフルな色素成分とともに、健やかなコンディションを守ります。' },
       { name: 'ビタミンE', benefit: '脂溶性ビタミンで、若々しい毎日をサポートします。' },
     ],
     recommendedDishes: [
@@ -303,7 +265,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'daikon',
-    number: 16,
+    number: 14,
     name: 'だいこん',
     category: '根菜',
     season: '11月〜2月（冬）',
@@ -322,7 +284,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'napa_cabbage',
-    number: 17,
+    number: 15,
     name: 'はくさい',
     category: '葉物・茎',
     season: '11月〜2月（冬）',
@@ -341,7 +303,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'green_onion',
-    number: 18,
+    number: 16,
     name: 'ねぎ',
     category: '葉物・茎',
     season: '11月〜2月（冬・通年流通）',
@@ -360,7 +322,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'bean_sprouts',
-    number: 19,
+    number: 17,
     name: 'もやし',
     category: '豆・その他',
     season: '通年',
@@ -379,7 +341,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'asparagus',
-    number: 20,
+    number: 18,
     name: 'アスパラガス',
     category: '葉物・茎',
     season: '4月〜6月（春〜初夏）',
@@ -398,7 +360,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'lotus_root',
-    number: 21,
+    number: 19,
     name: 'れんこん',
     category: '根菜',
     season: '10月〜1月（秋冬）',
@@ -417,13 +379,13 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'burdock',
-    number: 22,
+    number: 20,
     name: 'ごぼう',
     category: '根菜',
     season: '11月〜1月（秋冬）',
     shortNote: '独特の香ばしさと噛みごたえがあり、食物繊維がとっても豊富な根菜です。',
     nutrients: [
-      { name: 'イヌリン・リグニン（食物繊維）', benefit: '腸内環境を整えて、毎日のすっきり感を強くサポートします。' },
+      { name: '食物繊維（イヌリン・リグニン）', benefit: '腸内環境を整えて、毎日のすっきり感を強くサポートします。' },
       { name: 'クロロゲン酸', benefit: '皮付近に含まれるポリフェノールで、健やかさを守ります。' },
       { name: 'カリウム', benefit: '体のめぐりや水分バランスを整えます。' },
     ],
@@ -436,7 +398,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'snap_pea',
-    number: 23,
+    number: 21,
     name: 'スナップえんどう',
     category: '豆・その他',
     season: '4月〜6月（春〜初夏）',
@@ -451,11 +413,11 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
       'スナップえんどうと卵の炒め物',
       '春野菜のペペロンチーノ',
     ],
-    aliases: ['スナップえんどう', 'スナップエンドウ', 'さやえんどう', '絹さや', 'きぬさや', 'グリーンピース'],
+    aliases: ['スナップえんどう', 'スナップエンドウ', 'スナックえんどう'],
   },
   {
     id: 'edamame',
-    number: 24,
+    number: 22,
     name: '枝豆',
     category: '豆・その他',
     season: '7月〜9月（夏・冷凍で通年）',
@@ -463,7 +425,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
     nutrients: [
       { name: '植物性たんぱく質', benefit: '筋肉や肌・髪など、体をつくる大切な材料になります。' },
       { name: 'ビタミンB1', benefit: '食事の糖質をエネルギーに変えるのを助けます。' },
-      { name: '葉酸・食物繊維', benefit: '体のめぐりとお腹の調子を整えるサポートをします。' },
+      { name: '葉酸', benefit: '体のめぐりや健やかな細胞づくりをサポートします。' },
     ],
     recommendedDishes: [
       '塩ゆで枝豆・ガーリックペッパー枝豆',
@@ -474,7 +436,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'corn',
-    number: 25,
+    number: 23,
     name: 'とうもろこし',
     category: '豆・その他',
     season: '6月〜9月（夏）',
@@ -493,13 +455,13 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'okra',
-    number: 26,
+    number: 24,
     name: 'オクラ',
     category: '実もの',
     season: '7月〜9月（夏）',
     shortNote: '切ると星型になるかわいい野菜。ネバネバ成分がお腹にやさしく寄り添います。',
     nutrients: [
-      { name: '水溶性食物繊維（ペクチン）', benefit: '独特のネバネバのもとで、お腹の調子を整える働きがあります。' },
+      { name: '食物繊維（ペクチン）', benefit: '独特のネバネバのもとで、お腹の調子を整える働きがあります。' },
       { name: 'β-カロテン', benefit: '皮膚や粘膜の健康を保つサポートをします。' },
       { name: '葉酸', benefit: '健やかな体づくりを応援する栄養素です。' },
     ],
@@ -512,7 +474,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'zucchini',
-    number: 27,
+    number: 25,
     name: 'ズッキーニ',
     category: '実もの',
     season: '6月〜8月（夏）',
@@ -530,27 +492,8 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
     aliases: ['ズッキーニ', 'ずっきーに', '黄ズッキーニ'],
   },
   {
-    id: 'avocado',
-    number: 28,
-    name: 'アボカド',
-    category: '実もの',
-    season: '通年',
-    shortNote: '「森のバター」と呼ばれるほどクリーミー。良質な脂質とビタミンがたっぷりです。',
-    nutrients: [
-      { name: '不飽和脂肪酸（オレイン酸）', benefit: '体によいとされる良質な脂質で、健やかなめぐりをサポートします。' },
-      { name: 'ビタミンE', benefit: '若々しい肌や健康を保つ働きが期待されます。' },
-      { name: '食物繊維・カリウム', benefit: 'お腹の調子と体の水分バランスを整えます。' },
-    ],
-    recommendedDishes: [
-      'サーモンとアボカドのポキ丼',
-      'アボカドとトマトのわさび醤油和え',
-      'アボカドトースト（目玉焼きのせ）',
-    ],
-    aliases: ['アボカド', 'あぼかど', 'アボガド'],
-  },
-  {
     id: 'garlic_chives',
-    number: 29,
+    number: 26,
     name: 'にら',
     category: '葉物・茎',
     season: '3月〜5月（春にらが柔らか）・通年',
@@ -569,7 +512,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'mizuna',
-    number: 30,
+    number: 27,
     name: '水菜',
     category: '葉物・茎',
     season: '11月〜3月（冬・通年流通）',
@@ -588,7 +531,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'pea_sprouts',
-    number: 31,
+    number: 28,
     name: '豆苗',
     category: '葉物・茎',
     season: '通年',
@@ -607,7 +550,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
   },
   {
     id: 'turnip',
-    number: 32,
+    number: 29,
     name: 'かぶ',
     category: '根菜',
     season: '10月〜12月・3月〜5月',
@@ -615,7 +558,7 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
     nutrients: [
       { name: 'ビタミンC', benefit: '白い実にも葉にも含まれ、健やかな毎日を支えます。' },
       { name: 'アミラーゼ（消化酵素）', benefit: '生のまま食べると消化をやさしく助けてくれます。' },
-      { name: 'β-カロテン・カルシウム', benefit: '特に葉の部分に豊富で、丸ごと食べると栄養アップします。' },
+      { name: 'カリウム', benefit: '体の水分バランスを整えるのをサポートします。' },
     ],
     recommendedDishes: [
       'かぶと鶏ひき肉のとろみあんかけ',
@@ -623,6 +566,348 @@ export const VEGETABLE_CATALOG: VegetableCatalogEntry[] = [
       'かぶとベーコンのコンソメスープ',
     ],
     aliases: ['かぶ', 'カブ', '蕪', '小かぶ', '聖護院かぶ', '赤かぶ'],
+  },
+  {
+    id: 'bok_choy',
+    number: 30,
+    name: 'チンゲン菜',
+    category: '葉物・茎',
+    season: '9月〜12月（秋〜冬・通年流通）',
+    shortNote: 'クセがなく甘みがあり、中華炒めやスープ、おひたしにもぴったりの中国野菜です。',
+    nutrients: [
+      { name: 'β-カロテン', benefit: '緑色の濃い葉に豊富で、皮膚や粘膜の健康を保つとされています。' },
+      { name: 'カルシウム', benefit: '丈夫な骨や歯づくりを支えるミネラルが含まれています。' },
+      { name: 'ビタミンC', benefit: '日々の体調管理や肌のうるおいをサポートします。' },
+    ],
+    recommendedDishes: [
+      'チンゲン菜と豚肉の中華うま煮',
+      'チンゲン菜のオイスターソース炒め',
+      'チンゲン菜と卵の中華スープ',
+    ],
+    aliases: ['チンゲン菜', 'チンゲンサイ', 'ちんげんさい', '青梗菜', 'ミニチンゲン菜'],
+  },
+  {
+    id: 'garland_chrysanthemum',
+    number: 31,
+    name: '春菊',
+    category: '葉物・茎',
+    season: '11月〜2月（冬）',
+    shortNote: 'さわやかな香りとほろ苦さが魅力。お鍋だけでなく生サラダや白和えでも人気です。',
+    nutrients: [
+      { name: 'β-カロテン', benefit: '非常に豊富に含まれ、目や皮膚・のどの健康維持を助けます。' },
+      { name: 'カルシウム・鉄分', benefit: '健やかな骨と元気な毎日の土台を支えるミネラルです。' },
+      { name: '葉酸', benefit: '体のめぐりや新しい細胞づくりをサポートします。' },
+    ],
+    recommendedDishes: [
+      '春菊とツナのナムル（生サラダ風）',
+      '春菊の胡麻和え',
+      'すき焼き・寄せ鍋の春菊',
+    ],
+    aliases: ['春菊', 'しゅんぎく', 'シュンギク', '菊菜', 'きくな'],
+  },
+  {
+    id: 'sunny_lettuce',
+    number: 32,
+    name: 'サニーレタス',
+    category: '葉物・茎',
+    season: '4月〜6月・10月〜12月（通年流通）',
+    shortNote: '葉先の赤紫色がきれいな非結球レタス。玉レタスよりβ-カロテンが豊富です。',
+    nutrients: [
+      { name: 'β-カロテン', benefit: '緑黄色野菜に分類されるほど豊富で、肌や粘膜のケアに役立ちます。' },
+      { name: 'ビタミンC', benefit: '生で食べやすく、美容と健康維持を応援します。' },
+      { name: 'カリウム・食物繊維', benefit: '体の水分バランスとお腹の調子を整えます。' },
+    ],
+    recommendedDishes: [
+      'サニーレタスと豆腐のチョレギサラダ',
+      'サムギョプサル風の焼き肉レタス包み',
+      'サニーレタスとツナの海苔サラダ',
+    ],
+    aliases: ['サニーレタス', 'さにーれたす', 'レッドリーフレタス', '赤チマサンチュ'],
+  },
+  {
+    id: 'cauliflower',
+    number: 33,
+    name: 'カリフラワー',
+    category: '葉物・茎',
+    season: '11月〜3月（冬）',
+    shortNote: 'ほっくりした食感とやさしい甘みの白い花野菜。ビタミンCが加熱しても壊れにくいのが強みです。',
+    nutrients: [
+      { name: 'ビタミンC', benefit: '加熱による損失が少なく、お肌や日々の元気をしっかり支えます。' },
+      { name: 'カリウム', benefit: '余分な塩分の排出を助け、すっきり感をサポートします。' },
+      { name: '食物繊維', benefit: 'お腹の調子を整え、満足感を高めてくれます。' },
+    ],
+    recommendedDishes: [
+      'カリフラワーのカレー風味マヨ焼き',
+      'カリフラワーとベーコンの豆乳ポタージュ',
+      'カリフラワーのピクルス',
+    ],
+    aliases: ['カリフラワー', 'かりふらわー', '花キャベツ', 'ロマネスコ'],
+  },
+  {
+    id: 'celery',
+    number: 34,
+    name: 'セロリ',
+    category: '葉物・茎',
+    season: '11月〜5月（冬〜春）',
+    shortNote: 'シャキシャキ食感とさわやかな香りが特徴。スープの香りづけやピクルスにぴったりです。',
+    nutrients: [
+      { name: 'カリウム', benefit: '体のめぐりや水分バランスを整えるサポートをします。' },
+      { name: '食物繊維', benefit: '噛みごたえのある繊維質がお腹の調子を助けます。' },
+      { name: 'アピイン（香り成分）', benefit: '独特のさわやかな香りで、リラックスや食後のすっきり感を応援します。' },
+    ],
+    recommendedDishes: [
+      'セロリときゅうりの浅漬け・ピクルス',
+      'セロリと鶏ささみの塩だれ和え',
+      '野菜たっぷりミネストローネ',
+    ],
+    aliases: ['セロリ', 'せろり', 'セルリー', 'セロリの葉'],
+  },
+  {
+    id: 'bitter_melon',
+    number: 35,
+    name: 'ゴーヤ',
+    category: '実もの',
+    season: '6月〜8月（夏）',
+    shortNote: 'ほろ苦さがクセになる夏の定番野菜。わたを取って塩もみすると食べやすくなります。',
+    nutrients: [
+      { name: 'ビタミンC', benefit: '加熱に強く、夏の日差しや季節のコンディションケアを助けます。' },
+      { name: 'モモルデシン', benefit: '独特の苦味成分で、食欲や胃腸の元気を応援するとされます。' },
+      { name: 'カリウム・葉酸', benefit: '夏場の水分バランスや健やかな体づくりを支えます。' },
+    ],
+    recommendedDishes: [
+      '定番のゴーヤチャンプルー',
+      'ゴーヤとツナのさっぱりマヨサラダ',
+      'ゴーヤの肉詰め焼き',
+    ],
+    aliases: ['ゴーヤ', 'ごーや', 'ゴーヤー', 'ごーやー', '苦瓜', 'にがうり', 'ニガウリ'],
+  },
+  {
+    id: 'bamboo_shoot',
+    number: 36,
+    name: 'たけのこ',
+    category: '豆・その他',
+    season: '3月〜5月（春）',
+    shortNote: 'コリコリとした歯ざわりと春の香りが楽しめる食材。食物繊維やカリウムが豊富です。',
+    nutrients: [
+      { name: '食物繊維', benefit: '不溶性食物繊維が多く、お腹の中をすっきり整えてくれます。' },
+      { name: 'カリウム', benefit: '体内の余分な塩分バランスを整えるサポートをします。' },
+      { name: 'チロシン', benefit: '白い粒に見られるアミノ酸で、やる気や集中を支える成分とされます。' },
+    ],
+    recommendedDishes: [
+      '香りゆたかなたけのこご飯',
+      'たけのことわかめの若竹煮',
+      'チンジャオロース（細切りたけのこ＆ピーマン）',
+    ],
+    aliases: ['たけのこ', 'タケノコ', '筍', '竹の子', '竹のこ', '姫竹', '細竹'],
+  },
+  {
+    id: 'broad_bean',
+    number: 37,
+    name: 'そら豆',
+    category: '豆・その他',
+    season: '4月〜6月（春〜初夏）',
+    shortNote: 'ほくほくした食感とやさしい甘みが人気の季節の豆野菜。焼いても茹でても絶品です。',
+    nutrients: [
+      { name: '植物性たんぱく質', benefit: '体づくりのもとになる良質なたんぱく質を手軽に補えます。' },
+      { name: 'ビタミンB1・B2', benefit: '食事からエネルギーをつくる働きをサポートします。' },
+      { name: 'カリウム・食物繊維', benefit: '体のめぐりとお腹の調子を整えます。' },
+    ],
+    recommendedDishes: [
+      'さやごとグリルで焼きそら豆',
+      'そら豆とエビのガーリックソテー',
+      'そら豆とベーコンのチーズパスタ',
+    ],
+    aliases: ['そら豆', 'そらまめ', 'ソラマメ', '空豆', '蚕豆'],
+  },
+  {
+    id: 'green_bean',
+    number: 38,
+    name: 'さやいんげん',
+    category: '豆・その他',
+    season: '6月〜9月（夏・通年流通）',
+    shortNote: '彩りのきれいな細長い豆野菜。胡麻和えや肉巻き、炒め物のアクセントに大活躍します。',
+    nutrients: [
+      { name: 'β-カロテン', benefit: '皮膚や粘膜の健康維持を助ける緑の栄養素です。' },
+      { name: 'ビタミンC', benefit: '日々の元気とお肌の調子をサポートします。' },
+      { name: '食物繊維・葉酸', benefit: 'お腹の調子と体のめぐりを応援します。' },
+    ],
+    recommendedDishes: [
+      'さやいんげんの胡麻和え',
+      'いんげんと豚バラの甘辛肉巻き',
+      'いんげんとベーコンのペペロンチーノ炒め',
+    ],
+    aliases: ['さやいんげん', 'サヤインゲン', 'いんげん', 'インゲン', 'いんげん豆', 'インゲン豆', '三度豆'],
+  },
+  {
+    id: 'snow_pea',
+    number: 39,
+    name: '絹さや',
+    category: '豆・その他',
+    season: '3月〜6月（春〜初夏）',
+    shortNote: '平たいさやを丸ごと味わう上品な甘みの春野菜。お味噌汁や卵とじの彩りに重宝します。',
+    nutrients: [
+      { name: 'β-カロテン', benefit: '緑黄色野菜のひとつで、粘膜や肌の健康を保つとされます。' },
+      { name: 'ビタミンC', benefit: 'さっと火を通すだけで摂りやすく、体調管理を助けます。' },
+      { name: '葉酸', benefit: '健やかな体づくりを支える大切なビタミンです。' },
+    ],
+    recommendedDishes: [
+      '絹さやと新玉ねぎのお味噌汁',
+      '絹さやと卵のふんわり炒め',
+      'ちらし寿司や煮物の彩りトッピング',
+    ],
+    aliases: ['絹さや', 'きぬさや', 'キヌサヤ', 'さやえんどう', 'サヤエンドウ', '絹さやえんどう'],
+  },
+  {
+    id: 'green_peas',
+    number: 40,
+    name: 'グリーンピース',
+    category: '豆・その他',
+    season: '4月〜6月（春〜初夏・冷凍で通年）',
+    shortNote: 'コロコロかわいい緑のえんどう豆。豆ご飯やオムライス、シチューの彩りにぴったりです。',
+    nutrients: [
+      { name: '食物繊維', benefit: '豆類ならではの豊富な食物繊維でお腹スッキリを応援します。' },
+      { name: 'ビタミンB1', benefit: '糖質をエネルギーに変えるのを助け、毎日の活力を支えます。' },
+      { name: '植物性たんぱく質・葉酸', benefit: '体づくりや健やかなめぐりに役立ちます。' },
+    ],
+    recommendedDishes: [
+      '旬のほくほく豆ご飯',
+      'グリーンピースの濃厚ポタージュ',
+      'エビとグリーンピースのオムライス・ピラフ',
+    ],
+    aliases: ['グリーンピース', 'グリンピース', 'ぐりーんぴーす', '実えんどう', 'えんどう豆'],
+  },
+  {
+    id: 'shiso',
+    number: 41,
+    name: '大葉',
+    category: '葉物・茎',
+    season: '6月〜9月（夏・通年流通）',
+    shortNote: 'さわやかな香りで和食にもパスタにも大活躍。実は緑黄色野菜トップクラスの栄養を誇ります。',
+    nutrients: [
+      { name: 'β-カロテン', benefit: '驚くほど豊富に含まれ、皮膚や粘膜の健康維持に働きます。' },
+      { name: 'カルシウム・鉄分', benefit: '少し添えるだけでもミネラル補給のきっかけになります。' },
+      { name: 'ロズマリン酸・ペリルアルデヒド', benefit: '香り成分とポリフェノールがすっきりとした食後感を助けます。' },
+    ],
+    recommendedDishes: [
+      '豚肉の大葉チーズ巻き',
+      'しらすと大葉の和風パスタ',
+      '大葉たっぷり混ぜご飯・冷ややっこ',
+    ],
+    aliases: ['大葉', 'おおば', 'オオバ', '青じそ', '青ジソ', '青紫蘇', 'しそ', 'シソ', '紫蘇', '赤しそ', '赤ジソ'],
+  },
+  {
+    id: 'garlic',
+    number: 42,
+    name: 'にんにく',
+    category: '根菜',
+    season: '5月〜7月（新にんにく・通年）',
+    shortNote: '食欲をそそる香ばしい香味野菜。料理の香りづけやスタミナメニューに欠かせません。',
+    nutrients: [
+      { name: 'アリシン', benefit: 'ビタミンB1と結びついてエネルギー代謝を助け、元気に働くとされます。' },
+      { name: 'ビタミンB6', benefit: 'たんぱく質の代謝やコンディション維持に関わるビタミンです。' },
+      { name: 'カリウム', benefit: '体のめぐりや水分バランスをサポートします。' },
+    ],
+    recommendedDishes: [
+      'ガーリックシュリンプ（えびのにんにく炒め）',
+      'シンプルで香ばしいペペロンチーノ',
+      'ホイル焼きにんにく（ほくほく味噌添え）',
+    ],
+    aliases: ['にんにく', 'ニンニク', '大蒜', 'ガーリック', 'おろしにんにく'],
+  },
+  {
+    id: 'ginger',
+    number: 43,
+    name: 'しょうが',
+    category: '根菜',
+    season: '6月〜8月（新生姜）・9月〜11月（根生姜）',
+    shortNote: 'ピリッとした辛みと香りが料理を引き締める香味野菜。体をぽかぽか温める食材として親しまれています。',
+    nutrients: [
+      { name: 'ジンゲロール・ショウガオール', benefit: '辛味と香りの成分で、体の巡りやポカポカ感を応援するとされます。' },
+      { name: 'カリウム', benefit: '体内の水分バランスを整えるのを助けます。' },
+      { name: '食物繊維', benefit: '料理に添えることで健やかな食生活をサポートします。' },
+    ],
+    recommendedDishes: [
+      '定番の豚のしょうが焼き',
+      'たっぷり千切りしょうがの炊き込みご飯',
+      '鶏団子としょうがのあったかスープ',
+    ],
+    aliases: ['しょうが', 'ショウガ', '生姜', '新生姜', 'おろししょうが', 'おろし生姜', '紅しょうが', '紅生姜', 'ジンジャー'],
+  },
+  {
+    id: 'myoga',
+    number: 44,
+    name: 'みょうが',
+    category: '葉物・茎',
+    season: '6月〜10月（夏〜秋）',
+    shortNote: 'シャキッとした歯ざわりと独特の清涼感が魅力の薬味野菜。そうめんや冷ややっこに相性抜群です。',
+    nutrients: [
+      { name: 'α-ピネン（香り成分）', benefit: 'さわやかな香りで気分をリフレッシュし、食欲を支えます。' },
+      { name: 'カリウム', benefit: '夏場の水分バランスや塩分調整をやさしく助けます。' },
+      { name: 'アントシアニン・食物繊維', benefit: '皮の赤紫色に含まれるポリフェノールと繊維質が健康を支えます。' },
+    ],
+    recommendedDishes: [
+      'みょうがときゅうりの梅おかか和え',
+      'みょうがの甘酢漬け',
+      '薬味たっぷり冷やしうどん・そうめん',
+    ],
+    aliases: ['みょうが', 'ミョウガ', '茗荷'],
+  },
+  {
+    id: 'mitsuba',
+    number: 45,
+    name: '三つ葉',
+    category: '葉物・茎',
+    season: '3月〜5月（春・通年水耕栽培）',
+    shortNote: '親子丼やお吸い物にふわっと香る和のハーブ。少量でもβ-カロテンが含まれています。',
+    nutrients: [
+      { name: 'β-カロテン', benefit: '緑の葉に含まれ、皮膚や粘膜の健やかさを保つとされます。' },
+      { name: 'カリウム', benefit: '体内の余分な塩分バランスを整えるサポートをします。' },
+      { name: 'クリプトテーネン（香り成分）', benefit: '上品な和の香りで食事の満足感を高めてくれます。' },
+    ],
+    recommendedDishes: [
+      '三つ葉のせふわとろ親子丼',
+      '三つ葉と油揚げの卵とじ・お吸い物',
+      '三つ葉とささみのわさび醤油和え',
+    ],
+    aliases: ['三つ葉', 'みつば', 'ミツバ', '糸三つ葉', '切り三つ葉', '根三つ葉'],
+  },
+  {
+    id: 'parsley',
+    number: 46,
+    name: 'パセリ',
+    category: '葉物・茎',
+    season: '3月〜5月・9月〜11月（通年流通）',
+    shortNote: '添え物と思われがちですが、実はビタミンや鉄分がぎゅっと詰まった栄養の宝庫です。',
+    nutrients: [
+      { name: 'ビタミンC', benefit: '野菜の中でもトップクラスの含有量で、美容と元気をサポートします。' },
+      { name: 'β-カロテン', benefit: '豊富なカロテンが皮膚や粘膜の健康維持に働きます。' },
+      { name: '鉄分・葉酸', benefit: '健やかなめぐりを支える栄養素もしっかり含まれています。' },
+    ],
+    recommendedDishes: [
+      '刻みパセリたっぷりのガーリックバターライス',
+      'イタリアンパセリとあさりのボンゴレ',
+      'パセリとトマトのタブレ風サラダ',
+    ],
+    aliases: ['パセリ', 'ぱせり', 'イタリアンパセリ'],
+  },
+  {
+    id: 'rapeseed_blossom',
+    number: 47,
+    name: '菜の花',
+    category: '葉物・茎',
+    season: '2月〜4月（早春〜春）',
+    shortNote: '春を告げるほろ苦い花野菜。ビタミンCやβ-カロテン、葉酸などがバランスよく詰まっています。',
+    nutrients: [
+      { name: 'ビタミンC', benefit: '春先のコンディション維持や肌の調子を整えるサポートをします。' },
+      { name: 'β-カロテン', benefit: '緑のつぼみや葉に豊富で、皮膚や粘膜の健康を保ちます。' },
+      { name: '葉酸・鉄分', benefit: '健やかな体づくりや血のめぐりを応援する栄養素です。' },
+    ],
+    recommendedDishes: [
+      '菜の花の辛子和え・胡麻和え',
+      '菜の花とあさりの春パスタ',
+      '菜の花とベーコンのガーリックソテー',
+    ],
+    aliases: ['菜の花', 'なのはな', 'ナノハナ', 'なばな', '菜花', 'なの花'],
   },
 ];
 
@@ -658,7 +943,7 @@ for (const entry of VEGETABLE_CATALOG) {
     }
   }
 }
-// Longer keys first so e.g. ミニトマト matches before トマト, サツマイモ before イモ
+// Longer keys first so e.g. ミニトマト matches before トマト, サニーレタス before レタス
 ALIAS_LOOKUP.sort((a, b) => b.key.length - a.key.length);
 
 /**
@@ -681,7 +966,6 @@ export function resolveCatalogVegetable(rawName: string): VegetableCatalogEntry 
   // Avoid matching single-char aliases loosely
   for (const item of ALIAS_LOOKUP) {
     if (item.hiraKey.length >= 2 && (hira.includes(item.hiraKey) || item.hiraKey.includes(hira))) {
-      // Prevent false match between さつまいも/じゃがいも or ネギ/玉ねぎ
       if (item.entry.id === 'green_onion' && (hira.includes('たま') || hira.includes('玉'))) {
         continue;
       }
@@ -709,9 +993,11 @@ export function getCanonicalVegetableName(rawName: string): string {
   if (matched) {
     return matched.name;
   }
-  return rawName
-    .trim()
-    .replace(/[（(].*?[)）]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim() || rawName.trim();
+  return (
+    rawName
+      .trim()
+      .replace(/[（(].*?[)）]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim() || rawName.trim()
+  );
 }

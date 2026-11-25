@@ -113,33 +113,6 @@ export function VegetableIllustration({
             <path d="M30 14 L32 8 L34 14" stroke={s ? silDark : '#7C9E59'} strokeWidth="2.5" strokeLinecap="round" fill="none" />
           </>
         );
-      case 'potato':
-        return (
-          <>
-            <path d="M14 35 C12 24, 23 18, 35 19 C47 20, 53 28, 50 39 C47 48, 35 50, 24 47 C17 45, 15 41, 14 35 Z" fill={s ? sil : '#CFA670'} />
-            {!s && (
-              <>
-                <circle cx="25" cy="30" r="1.5" fill="#9A7240" />
-                <circle cx="38" cy="27" r="1.3" fill="#9A7240" />
-                <circle cx="34" cy="39" r="1.6" fill="#9A7240" />
-                <circle cx="43" cy="35" r="1.2" fill="#9A7240" />
-              </>
-            )}
-          </>
-        );
-      case 'sweet_potato':
-        return (
-          <>
-            <path d="M12 41 C15 29, 31 18, 48 16 C53 16, 54 22, 50 28 C44 39, 30 49, 16 49 C12 49, 11 45, 12 41 Z" fill={s ? sil : '#B5486A'} />
-            {!s && (
-              <>
-                <path d="M23 36 L27 39" stroke="#8C2F4C" strokeWidth="1.8" strokeLinecap="round" />
-                <path d="M34 27 L38 30" stroke="#8C2F4C" strokeWidth="1.8" strokeLinecap="round" />
-                <ellipse cx="44" cy="22" rx="4" ry="2.2" transform="rotate(-35 44 22)" fill="#F0D88C" />
-              </>
-            )}
-          </>
-        );
       case 'pumpkin':
         return (
           <>
@@ -304,14 +277,6 @@ export function VegetableIllustration({
             <path d="M46 15 L50 11" stroke={s ? silDark : '#6A8D56'} strokeWidth="3" strokeLinecap="round" />
           </>
         );
-      case 'avocado':
-        return (
-          <>
-            <path d="M32 13 C39 13, 46 26, 46 37 C46 46, 40 52, 32 52 C24 52, 18 46, 18 37 C18 26, 25 13, 32 13 Z" fill={s ? silDark : '#3B5E3A'} />
-            <path d="M32 16 C37 16, 43 27, 43 37 C43 44, 38 49, 32 49 C26 49, 21 44, 21 37 C21 27, 27 16, 32 16 Z" fill={s ? sil : '#B5D66F'} />
-            <circle cx="32" cy="38" r="7.5" fill={s ? silDark : '#7C4B2B'} />
-          </>
-        );
       case 'garlic_chives':
         return (
           <>
@@ -336,6 +301,201 @@ export function VegetableIllustration({
             <circle cx="35" cy="19" r="4.5" fill={s ? sil : '#5BB86D'} />
             <circle cx="38" cy="25" r="4.2" fill={s ? sil : '#4BA35C'} />
             <circle cx="43" cy="26" r="4.2" fill={s ? sil : '#5BB86D'} />
+          </>
+        );
+      case 'bok_choy':
+        return (
+          <>
+            <path d="M22 36 C19 46, 23 53, 32 53 C41 53, 45 46, 42 36 C39 30, 25 30, 22 36 Z" fill={s ? sil : '#DCEFD0'} />
+            <ellipse cx="22" cy="25" rx="7" ry="11" transform="rotate(-14 22 25)" fill={s ? silDark : '#3C8E53'} />
+            <ellipse cx="42" cy="25" rx="7" ry="11" transform="rotate(14 42 25)" fill={s ? silDark : '#3C8E53'} />
+            <ellipse cx="32" cy="22" rx="8" ry="12" fill={s ? sil : '#52A868'} />
+            {!s && <path d="M32 34 L32 51" stroke="#B6DFB3" strokeWidth="2" strokeLinecap="round" />}
+          </>
+        );
+      case 'garland_chrysanthemum':
+        return (
+          <>
+            <path d="M32 53 L32 22 M32 42 L22 30 M32 36 L42 25" stroke={s ? silDark : '#488D56'} strokeWidth="2.8" strokeLinecap="round" />
+            <path d="M18 33 C14 28, 17 22, 23 24 C22 18, 28 15, 32 19 C36 15, 42 18, 41 24 C47 22, 50 28, 46 33 C42 37, 36 36, 32 41 C28 36, 22 37, 18 33 Z" fill={s ? sil : '#3B8152'} />
+            {!s && <circle cx="32" cy="14" r="3.5" fill="#F2C84B" />}
+          </>
+        );
+      case 'sunny_lettuce':
+        return (
+          <>
+            <path d="M16 42 C12 31, 18 19, 26 17 C29 12, 36 12, 39 17 C47 19, 52 31, 48 42 C44 50, 20 50, 16 42 Z" fill={s ? silDark : '#7C3F58'} />
+            <path d="M20 43 C17 34, 23 23, 32 22 C41 23, 47 34, 44 43 C40 49, 24 49, 20 43 Z" fill={s ? sil : '#7AC05A'} />
+            {!s && <path d="M24 22 C28 19, 36 19, 40 22" stroke="#9B4D6E" strokeWidth="2.4" strokeLinecap="round" fill="none" />}
+          </>
+        );
+      case 'cauliflower':
+        return (
+          <>
+            <path d="M16 36 C15 47, 25 53, 32 53 C39 53, 49 47, 48 36 L42 40 L32 44 L22 40 Z" fill={s ? silDark : '#5AA658'} />
+            <circle cx="23" cy="30" r="8.5" fill={s ? sil : '#F5F1E3'} />
+            <circle cx="41" cy="30" r="8.5" fill={s ? sil : '#F5F1E3'} />
+            <circle cx="32" cy="22" r="9.5" fill={s ? sil : '#FAF7ED'} />
+            <circle cx="32" cy="34" r="9" fill={s ? sil : '#F2EDE0'} />
+            {!s && (
+              <>
+                <circle cx="27" cy="24" r="2.2" fill="#DFD8C5" />
+                <circle cx="37" cy="26" r="2" fill="#DFD8C5" />
+              </>
+            )}
+          </>
+        );
+      case 'celery':
+        return (
+          <>
+            <path d="M22 53 L20 24 L27 24 L28 53 Z" fill={s ? sil : '#9ED27A'} />
+            <path d="M36 53 L37 24 L44 24 L42 53 Z" fill={s ? sil : '#9ED27A'} />
+            <path d="M28 53 L28 21 L36 21 L36 53 Z" fill={s ? silDark : '#B6E094'} />
+            <circle cx="22" cy="18" r="5" fill={s ? silDark : '#4B975C'} />
+            <circle cx="32" cy="15" r="5.5" fill={s ? silDark : '#3B8152'} />
+            <circle cx="42" cy="18" r="5" fill={s ? silDark : '#4B975C'} />
+          </>
+        );
+      case 'bitter_melon':
+        return (
+          <>
+            <path d="M22 18 C22 12, 42 12, 42 18 L44 45 C44 52, 20 52, 20 45 Z" fill={s ? sil : '#3B8C4F'} />
+            {!s && (
+              <>
+                <circle cx="26" cy="24" r="2.6" fill="#296B3A" />
+                <circle cx="36" cy="23" r="2.6" fill="#296B3A" />
+                <circle cx="31" cy="31" r="2.8" fill="#5CB06F" />
+                <circle cx="25" cy="38" r="2.6" fill="#296B3A" />
+                <circle cx="37" cy="39" r="2.6" fill="#296B3A" />
+                <circle cx="32" cy="45" r="2.5" fill="#5CB06F" />
+              </>
+            )}
+            <path d="M32 13 L32 8" stroke={s ? silDark : '#2D6A4F'} strokeWidth="2.8" strokeLinecap="round" />
+          </>
+        );
+      case 'bamboo_shoot':
+        return (
+          <>
+            <path d="M18 52 L32 12 L46 52 Z" fill={s ? sil : '#C89E66'} />
+            {!s && (
+              <>
+                <path d="M23 40 L41 36" stroke="#9B7240" strokeWidth="2" />
+                <path d="M26 30 L38 27" stroke="#9B7240" strokeWidth="2" />
+                <path d="M21 52 L32 23 L43 52 Z" fill="#F2E4BA" opacity="0.65" />
+              </>
+            )}
+          </>
+        );
+      case 'broad_bean':
+        return (
+          <>
+            <path d="M14 40 C16 25, 29 17, 46 18 C51 19, 52 25, 48 31 C40 43, 28 49, 17 47 C13 46, 13 43, 14 40 Z" fill={s ? sil : '#6BB961'} />
+            {!s && (
+              <>
+                <ellipse cx="24" cy="39" rx="5" ry="4" transform="rotate(-20 24 39)" fill="#A5E28C" />
+                <ellipse cx="34" cy="32" rx="5" ry="4" transform="rotate(-20 34 32)" fill="#A5E28C" />
+                <ellipse cx="43" cy="25" rx="4.5" ry="3.5" transform="rotate(-20 43 25)" fill="#A5E28C" />
+              </>
+            )}
+          </>
+        );
+      case 'green_bean':
+        return (
+          <>
+            <path d="M16 46 C22 33, 31 23, 44 13" stroke={s ? sil : '#4B975C'} strokeWidth="4.6" strokeLinecap="round" fill="none" />
+            <path d="M23 50 C29 37, 38 27, 50 17" stroke={s ? silDark : '#3B8152'} strokeWidth="4.6" strokeLinecap="round" fill="none" />
+            <path d="M14 37 C20 26, 29 17, 38 11" stroke={s ? sil : '#65B576'} strokeWidth="4.2" strokeLinecap="round" fill="none" />
+          </>
+        );
+      case 'snow_pea':
+        return (
+          <>
+            <path d="M14 42 C18 27, 31 17, 48 16 C49 28, 39 42, 22 48 C16 50, 12 47, 14 42 Z" fill={s ? sil : '#76C26D'} />
+            {!s && <path d="M18 42 C25 35, 36 27, 44 20" stroke="#4D9448" strokeWidth="1.8" strokeLinecap="round" fill="none" />}
+          </>
+        );
+      case 'green_peas':
+        return (
+          <>
+            <path d="M14 39 C18 25, 32 17, 49 18 C47 32, 37 45, 20 47 C15 47, 12 43, 14 39 Z" fill={s ? silDark : '#4A9652'} />
+            <circle cx="23" cy="39" r="4.5" fill={s ? sil : '#8FE077'} />
+            <circle cx="32" cy="33" r="4.5" fill={s ? sil : '#8FE077'} />
+            <circle cx="40" cy="26" r="4.2" fill={s ? sil : '#8FE077'} />
+          </>
+        );
+      case 'shiso':
+        return (
+          <>
+            <path d="M32 54 L32 42" stroke={s ? silDark : '#2D6A4F'} strokeWidth="2.8" strokeLinecap="round" />
+            <path d="M32 13 C42 18, 50 28, 46 39 C43 46, 36 47, 32 45 C28 47, 21 46, 18 39 C14 28, 22 18, 32 13 Z" fill={s ? sil : '#3E9155'} />
+            {!s && <path d="M32 17 L32 44 M32 25 L24 31 M32 25 L40 31 M32 34 L24 39 M32 34 L40 39" stroke="#6AC481" strokeWidth="1.6" strokeLinecap="round" />}
+          </>
+        );
+      case 'garlic':
+        return (
+          <>
+            <path d="M32 12 C34 19, 48 25, 48 38 C48 47, 41 51, 32 51 C23 51, 16 47, 16 38 C16 25, 30 19, 32 12 Z" fill={s ? sil : '#F4EFE4'} stroke={s ? 'none' : '#D5CBB8'} strokeWidth="1.5" />
+            {!s && (
+              <>
+                <path d="M32 16 C27 25, 25 38, 27 50" stroke="#D7CDB8" strokeWidth="1.5" fill="none" />
+                <path d="M32 16 C37 25, 39 38, 37 50" stroke="#D7CDB8" strokeWidth="1.5" fill="none" />
+              </>
+            )}
+          </>
+        );
+      case 'ginger':
+        return (
+          <>
+            <path d="M15 39 C13 31, 21 26, 27 29 C28 21, 36 18, 41 24 C47 22, 52 29, 48 37 C45 45, 34 49, 24 47 C18 46, 16 43, 15 39 Z" fill={s ? sil : '#DFBC7E'} />
+            {!s && (
+              <>
+                <path d="M23 36 L27 33 M34 32 L38 29 M30 41 L35 39" stroke="#B69155" strokeWidth="1.6" strokeLinecap="round" />
+              </>
+            )}
+          </>
+        );
+      case 'myoga':
+        return (
+          <>
+            <path d="M32 13 C41 20, 46 31, 43 43 C41 49, 36 52, 32 52 C28 52, 23 49, 21 43 C18 31, 23 20, 32 13 Z" fill={s ? sil : '#D66B7A'} />
+            {!s && (
+              <>
+                <path d="M23 44 C26 37, 29 29, 32 19 C35 29, 38 37, 41 44" stroke="#F4D3D7" strokeWidth="1.6" fill="none" />
+                <ellipse cx="32" cy="48" rx="7" ry="4" fill="#EFE4C4" />
+              </>
+            )}
+          </>
+        );
+      case 'mitsuba':
+        return (
+          <>
+            <path d="M32 54 L32 31 M32 34 L21 25 M32 34 L43 25" stroke={s ? silDark : '#66AD68'} strokeWidth="2.4" strokeLinecap="round" />
+            <ellipse cx="32" cy="18" rx="6" ry="8" fill={s ? sil : '#449956'} />
+            <ellipse cx="20" cy="25" rx="7" ry="5.5" transform="rotate(-25 20 25)" fill={s ? sil : '#52AD64'} />
+            <ellipse cx="44" cy="25" rx="7" ry="5.5" transform="rotate(25 44 25)" fill={s ? sil : '#52AD64'} />
+          </>
+        );
+      case 'parsley':
+        return (
+          <>
+            <path d="M32 53 L32 32 M32 38 L22 28 M32 36 L42 27" stroke={s ? silDark : '#3B8152'} strokeWidth="2.6" strokeLinecap="round" />
+            <circle cx="22" cy="27" r="6" fill={s ? sil : '#3C8E53'} />
+            <circle cx="28" cy="20" r="6.5" fill={s ? sil : '#4BA35C'} />
+            <circle cx="37" cy="20" r="6.5" fill={s ? sil : '#3C8E53'} />
+            <circle cx="43" cy="27" r="6" fill={s ? sil : '#4BA35C'} />
+            <circle cx="32" cy="28" r="6.5" fill={s ? sil : '#2D6A4F'} />
+          </>
+        );
+      case 'rapeseed_blossom':
+        return (
+          <>
+            <path d="M32 54 L32 23 M32 42 L22 33 M32 39 L42 30" stroke={s ? silDark : '#488D56'} strokeWidth="3" strokeLinecap="round" />
+            <ellipse cx="22" cy="35" rx="6" ry="3.5" transform="rotate(-30 22 35)" fill={s ? sil : '#52A868'} />
+            <ellipse cx="42" cy="33" rx="6" ry="3.5" transform="rotate(30 42 33)" fill={s ? sil : '#52A868'} />
+            <circle cx="27" cy="21" r="4" fill={s ? sil : '#F4C944'} />
+            <circle cx="37" cy="21" r="4" fill={s ? sil : '#F4C944'} />
+            <circle cx="32" cy="15" r="4.5" fill={s ? sil : '#F9D85E'} />
+            <circle cx="32" cy="24" r="3.8" fill={s ? sil : '#52A868'} />
           </>
         );
       case 'turnip':

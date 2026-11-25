@@ -122,7 +122,7 @@ export function VegetableEncyclopediaPage({
               {data.unlockedCount === 0
                 ? 'まだ図鑑に登録された野菜がありません。食事を解析して「食事を記録する」を押すと登録されます。'
                 : data.unlockedCount === data.totalCount
-                  ? '全32種類の野菜をコンプリートしました！素晴らしい食生活です。'
+                  ? `全${data.totalCount}種類の野菜をコンプリートしました！素晴らしい食生活です。`
                   : `コンプリートまであと ${data.totalCount - data.unlockedCount}種類 · のべ記録回数 ${totalMealsCounted}回`}
             </p>
           </div>
