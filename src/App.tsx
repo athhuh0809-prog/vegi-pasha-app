@@ -10,16 +10,20 @@ import {
   Loader2,
   RefreshCw,
   RotateCcw,
+  Sprout,
   Upload,
 } from 'lucide-react';
 import { AddVegetableForm } from './components/AddVegetableForm';
 import { CameraModal } from './components/CameraModal';
+import { CharacterRaisingPage } from './components/CharacterRaisingPage';
+import { LevelUpModal } from './components/LevelUpModal';
 import { MealRecordDetailModal } from './components/MealRecordDetailModal';
 import { MealRecordsPage } from './components/MealRecordsPage';
-import { SaveMealSection } from './components/SaveMealSection';
+import { SaveMealSection, type SaveMealOutcome } from './components/SaveMealSection';
 import { VegetableCard } from './components/VegetableCard';
 import { VegetableDetailView } from './components/VegetableDetailView';
 import { VegetableEncyclopediaPage } from './components/VegetableEncyclopediaPage';
+import type { CharacterProfile } from './types/character';
 import type {
   AnalysisErrorInfo,
   EncyclopediaVegetableStatus,
@@ -29,17 +33,21 @@ import type {
   SessionAnalysisEntry,
   VegetableItem,
 } from './types/meal';
+import { buildCharacterProgress, createDefaultCharacterProfile } from './utils/characterEngine';
 import { processImageFile, type CompressedImage } from './utils/image';
 import {
   buildEncyclopediaData,
   deleteMealRecordById,
   deriveMetadataForRecord,
   getAllMealRecords,
+  getCharacterProfile,
   getNewlyUnlockableVegetableNames,
   getViewedEncyclopediaIds,
   markVegetableViewed,
   pruneViewedEncyclopediaIds,
   saveNewMealRecord,
+  updateCharacterCelebratedLevel,
+  updateCharacterName,
   updateExistingMealRecord,
 } from './utils/mealDb';
 
@@ -50,7 +58,9 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const nativeCameraInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [currentPage, setCurrentPage] = useState<'analyzer' | 'records' | 'encyclopedia'>('analyzer');
+  const [currentPage, setCurrentPage] = useState<
+    'analyzer' | 'records' | 'encyclopedia' | 'character'
+  >('analyzer');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -62,6 +72,11 @@ export default function App() {
 
   const [savedRecords, setSavedRecords] = useState<MealRecord[]>([]);
   const [viewedVegetableIds, setViewedVegetableIds] = useState<string[]>([]);
+  const [characterProfile, setCharacterProfile] = useState<CharacterProfile>(
+    createDefaultCharacterProfile,
+  );
+  const [levelUpModalState, setLevelUpModalState] = useState<{ fromLevel: number } | null>(null);
+
   const [recordsLoading, setRecordsLoading] = useState(true);
   const [recordsLoadError, setRecordsLoadError] = useState<string | null>(null);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
@@ -80,6 +95,10 @@ export default function App() {
     encyclopediaData.entries.find(
       (entry) => entry.catalog.id === selectedVegetableId && entry.isUnlocked,
     ) ?? null;
+  const characterProgress = useMemo(
+    () => buildCharacterProgress(savedRecords, characterProfile),
+    [savedRecords, characterProfile],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -87,13 +106,15 @@ export default function App() {
       setRecordsLoading(true);
       setRecordsLoadError(null);
       try {
-        const [loaded, viewedIds] = await Promise.all([
+        const [loaded, viewedIds, profile] = await Promise.all([
           getAllMealRecords(),
           getViewedEncyclopediaIds(),
+          getCharacterProfile(),
         ]);
         if (!cancelled) {
           setSavedRecords(loaded);
           setViewedVegetableIds(viewedIds);
+          setCharacterProfile(profile);
         }
       } catch (err) {
         if (!cancelled) {
@@ -340,21 +361,37 @@ export default function App() {
     );
   };
 
-  const syncViewedAfterRecordChange = async (nextRecords: MealRecord[]) => {
+  const syncDerivedStateAfterRecordChange = async (nextRecords: MealRecord[]) => {
     const nextEncyclopedia = buildEncyclopediaData(nextRecords, viewedVegetableIds);
     const unlockedIds = nextEncyclopedia.entries
       .filter((entry) => entry.isUnlocked)
       .map((entry) => entry.catalog.id);
     const pruned = await pruneViewedEncyclopediaIds(unlockedIds);
     setViewedVegetableIds(pruned);
+
+    const nextProgress = buildCharacterProgress(nextRecords, characterProfile);
+    if (nextProgress.level < characterProfile.lastCelebratedLevel) {
+      const syncedProfile = await updateCharacterCelebratedLevel(nextProgress.level);
+      setCharacterProfile(syncedProfile);
+    } else if (nextProgress.level > characterProfile.lastCelebratedLevel) {
+      setLevelUpModalState({ fromLevel: characterProfile.lastCelebratedLevel });
+    }
   };
 
   const handleSaveMealRecord = async (payload: {
     dishName: string;
     mealType: MealType;
     eatenAt: string;
-  }): Promise<string[]> => {
-    if (!activeEntry) return [];
+  }): Promise<SaveMealOutcome> => {
+    if (!activeEntry) {
+      return {
+        newlyUnlockedNames: [],
+        expGained: 0,
+        cappedByDailyLimit: false,
+        leveledUpTo: null,
+        characterName: characterProfile.name,
+      };
+    }
 
     const newlyUnlockedNames = getNewlyUnlockableVegetableNames(
       activeEntry.editedResult.vegetables,
@@ -386,9 +423,10 @@ export default function App() {
 
     try {
       const saved = await saveNewMealRecord(record);
-      setSavedRecords((prev) =>
-        [saved, ...prev].sort((a, b) => b.eatenAt.localeCompare(a.eatenAt)),
+      const nextRecords = [saved, ...savedRecords].sort((a, b) =>
+        b.eatenAt.localeCompare(a.eatenAt),
       );
+      setSavedRecords(nextRecords);
       setHistory((prev) =>
         prev.map((entry) =>
           entry.id === activeEntry.id
@@ -396,7 +434,26 @@ export default function App() {
             : entry,
         ),
       );
-      return newlyUnlockedNames;
+
+      const nextProgress = buildCharacterProgress(nextRecords, characterProfile);
+      const savedEvent = nextProgress.recentGrowthEvents.find((e) => e.recordId === saved.id);
+      const expGained = savedEvent
+        ? savedEvent.actualExp
+        : Math.max(0, nextProgress.totalExp - characterProgress.totalExp);
+      const leveledUpTo =
+        nextProgress.level > characterProgress.level ? nextProgress.level : null;
+
+      if (nextProgress.level > characterProfile.lastCelebratedLevel) {
+        setLevelUpModalState({ fromLevel: characterProfile.lastCelebratedLevel });
+      }
+
+      return {
+        newlyUnlockedNames,
+        expGained,
+        cappedByDailyLimit: Boolean(savedEvent?.cappedByDailyLimit),
+        leveledUpTo,
+        characterName: characterProfile.name,
+      };
     } catch (err) {
       if (err instanceof Error && err.message === 'DUPLICATE_ANALYSIS_RECORD') {
         throw new Error('この解析結果はすでに記録されています（重複保存は防止されました）。');
@@ -436,7 +493,7 @@ export default function App() {
       .map((r) => (r.id === updated.id ? updated : r))
       .sort((a, b) => b.eatenAt.localeCompare(a.eatenAt));
     setSavedRecords(nextRecords);
-    await syncViewedAfterRecordChange(nextRecords);
+    await syncDerivedStateAfterRecordChange(nextRecords);
 
     setHistory((prev) =>
       prev.map((entry) =>
@@ -453,14 +510,14 @@ export default function App() {
       .map((r) => (r.id === saved.id ? saved : r))
       .sort((a, b) => b.eatenAt.localeCompare(a.eatenAt));
     setSavedRecords(nextRecords);
-    await syncViewedAfterRecordChange(nextRecords);
+    await syncDerivedStateAfterRecordChange(nextRecords);
   };
 
   const handleDeleteRecordFromModal = async (recordId: string) => {
     await deleteMealRecordById(recordId);
     const nextRecords = savedRecords.filter((r) => r.id !== recordId);
     setSavedRecords(nextRecords);
-    await syncViewedAfterRecordChange(nextRecords);
+    await syncDerivedStateAfterRecordChange(nextRecords);
     setHistory((prev) =>
       prev.map((entry) =>
         entry.savedRecordId === recordId
@@ -476,6 +533,25 @@ export default function App() {
       const updatedViewed = await markVegetableViewed(entry.catalog.id);
       setViewedVegetableIds(updatedViewed);
     }
+  };
+
+  const handleRenameCharacter = async (newName: string) => {
+    const updatedProfile = await updateCharacterName(newName);
+    setCharacterProfile(updatedProfile);
+  };
+
+  const handleOpenCharacterPage = () => {
+    setCurrentPage('character');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (characterProgress.level > characterProfile.lastCelebratedLevel) {
+      setLevelUpModalState({ fromLevel: characterProfile.lastCelebratedLevel });
+    }
+  };
+
+  const handleCloseLevelUpModal = async () => {
+    setLevelUpModalState(null);
+    const updatedProfile = await updateCharacterCelebratedLevel(characterProgress.level);
+    setCharacterProfile(updatedProfile);
   };
 
   const handleRetryCurrent = () => {
@@ -544,7 +620,7 @@ export default function App() {
             ベジぱしゃ
           </a>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[#516457]">
+          <nav className="hidden md:flex items-center gap-5 lg:gap-6 text-sm font-medium text-[#516457]">
             <button
               type="button"
               onClick={() => {
@@ -596,6 +672,22 @@ export default function App() {
             </button>
             <button
               type="button"
+              onClick={handleOpenCharacterPage}
+              className={`hover:text-[#1F2D24] underline-offset-4 transition-colors whitespace-nowrap shrink-0 tabular-nums inline-flex items-center gap-1.5 ${
+                currentPage === 'character'
+                  ? 'text-[#1F2D24] font-semibold underline'
+                  : 'hover:underline'
+              }`}
+            >
+              <span>育成 Lv.{characterProgress.level}</span>
+              {characterProgress.level > characterProfile.lastCelebratedLevel && (
+                <span className="px-1.5 py-0.5 rounded bg-[#D97706] text-white text-[10px] font-bold leading-none no-underline">
+                  UP
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
               onClick={() => handleNavigateSection('how-to-read')}
               className="hover:text-[#1F2D24] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
             >
@@ -638,6 +730,17 @@ export default function App() {
             data={encyclopediaData}
             isLoading={recordsLoading}
             onSelectVegetable={handleSelectEncyclopediaVegetable}
+            onGoToAnalyzer={() => {
+              setCurrentPage('analyzer');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        ) : currentPage === 'character' ? (
+          <CharacterRaisingPage
+            progress={characterProgress}
+            isLoading={recordsLoading}
+            onRenameCharacter={handleRenameCharacter}
+            onSelectMealRecord={(recordId) => setSelectedRecordId(recordId)}
             onGoToAnalyzer={() => {
               setCurrentPage('analyzer');
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1071,6 +1174,7 @@ export default function App() {
                           setCurrentPage('encyclopedia');
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
+                        onGoToCharacter={handleOpenCharacterPage}
                       />
                     </>
                   ) : null}
@@ -1189,8 +1293,8 @@ export default function App() {
       </footer>
 
       {/* Mobile Sticky Bottom Thumb-Zone Action Bar (<= 64px height, < 15% mobile viewport) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#FBF8F1]/95 backdrop-blur-md border-t border-[#DCE6DA] px-2.5 py-2">
-        <div className="grid grid-cols-4 gap-1.5 max-w-md mx-auto">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#FBF8F1]/95 backdrop-blur-md border-t border-[#DCE6DA] px-2 py-1.5">
+        <div className="grid grid-cols-5 gap-1 max-w-md mx-auto">
           <button
             type="button"
             onClick={() => {
@@ -1198,9 +1302,9 @@ export default function App() {
               handleOpenCamera();
             }}
             disabled={isAnalyzing}
-            className="min-h-[44px] px-1.5 py-1.5 rounded-xl bg-[#2D6A4F] active:scale-[0.98] disabled:opacity-50 text-white text-[11px] font-medium inline-flex items-center justify-center gap-1 transition-transform whitespace-nowrap"
+            className="min-h-[46px] px-1 py-1 rounded-xl bg-[#2D6A4F] active:scale-[0.98] disabled:opacity-50 text-white text-[10px] font-medium flex flex-col items-center justify-center gap-0.5 transition-transform whitespace-nowrap"
           >
-            <Camera className="w-3.5 h-3.5 shrink-0" />
+            <Camera className="w-4 h-4 shrink-0" />
             <span>撮影</span>
           </button>
           <button
@@ -1210,10 +1314,10 @@ export default function App() {
               handleOpenUpload();
             }}
             disabled={isAnalyzing}
-            className="min-h-[44px] px-1.5 py-1.5 rounded-xl border border-[#DCE6DA] bg-white active:scale-[0.98] disabled:opacity-50 text-[#2D6A4F] text-[11px] font-medium inline-flex items-center justify-center gap-1 transition-transform whitespace-nowrap"
+            className="min-h-[46px] px-1 py-1 rounded-xl border border-[#DCE6DA] bg-white active:scale-[0.98] disabled:opacity-50 text-[#2D6A4F] text-[10px] font-medium flex flex-col items-center justify-center gap-0.5 transition-transform whitespace-nowrap"
           >
-            <Upload className="w-3.5 h-3.5 shrink-0" />
-            <span>写真を選ぶ</span>
+            <Upload className="w-4 h-4 shrink-0" />
+            <span>写真</span>
           </button>
           <button
             type="button"
@@ -1221,19 +1325,19 @@ export default function App() {
               setCurrentPage((prev) => (prev === 'records' ? 'analyzer' : 'records'));
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className={`min-h-[44px] px-1.5 py-1.5 rounded-xl border text-[11px] font-medium inline-flex items-center justify-center gap-1 transition-colors whitespace-nowrap tabular-nums ${
+            className={`min-h-[46px] px-1 py-1 rounded-xl border text-[10px] font-medium flex flex-col items-center justify-center gap-0.5 transition-colors whitespace-nowrap tabular-nums ${
               currentPage === 'records'
                 ? 'bg-[#EEF5EC] border-[#2D6A4F] text-[#2D6A4F]'
                 : 'bg-white border-[#DCE6DA] text-[#1F2D24]'
             }`}
           >
-            <Calendar className="w-3.5 h-3.5 shrink-0" />
+            <Calendar className="w-4 h-4 shrink-0" />
             <span>
               {currentPage === 'records'
-                ? '解析へ'
+                ? '解析'
                 : savedRecords.length > 0
                   ? `記録(${savedRecords.length})`
-                  : '食事記録'}
+                  : '記録'}
             </span>
           </button>
           <button
@@ -1242,23 +1346,52 @@ export default function App() {
               setCurrentPage((prev) => (prev === 'encyclopedia' ? 'analyzer' : 'encyclopedia'));
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className={`relative min-h-[44px] px-1.5 py-1.5 rounded-xl border text-[11px] font-medium inline-flex items-center justify-center gap-1 transition-colors whitespace-nowrap tabular-nums ${
+            className={`relative min-h-[46px] px-1 py-1 rounded-xl border text-[10px] font-medium flex flex-col items-center justify-center gap-0.5 transition-colors whitespace-nowrap tabular-nums ${
               currentPage === 'encyclopedia'
                 ? 'bg-[#EEF5EC] border-[#2D6A4F] text-[#2D6A4F]'
                 : 'bg-white border-[#DCE6DA] text-[#1F2D24]'
             }`}
           >
-            <BookOpen className="w-3.5 h-3.5 shrink-0" />
+            <BookOpen className="w-4 h-4 shrink-0" />
             <span>
               {currentPage === 'encyclopedia'
-                ? '解析へ'
+                ? '解析'
                 : `図鑑(${encyclopediaData.unlockedCount})`}
             </span>
             {encyclopediaData.newCount > 0 && currentPage !== 'encyclopedia' && (
-              <span className="absolute -top-1.5 right-1 px-1 py-0.5 rounded bg-[#D97706] text-white text-[9px] font-bold leading-none">
+              <span className="absolute -top-1 right-0.5 px-1 py-0.5 rounded bg-[#D97706] text-white text-[8px] font-bold leading-none">
                 NEW
               </span>
             )}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (currentPage === 'character') {
+                setCurrentPage('analyzer');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              } else {
+                handleOpenCharacterPage();
+              }
+            }}
+            className={`relative min-h-[46px] px-1 py-1 rounded-xl border text-[10px] font-medium flex flex-col items-center justify-center gap-0.5 transition-colors whitespace-nowrap tabular-nums ${
+              currentPage === 'character'
+                ? 'bg-[#EEF5EC] border-[#2D6A4F] text-[#2D6A4F]'
+                : 'bg-white border-[#DCE6DA] text-[#1F2D24]'
+            }`}
+          >
+            <Sprout className="w-4 h-4 shrink-0" />
+            <span>
+              {currentPage === 'character'
+                ? '解析'
+                : `育成Lv${characterProgress.level}`}
+            </span>
+            {characterProgress.level > characterProfile.lastCelebratedLevel &&
+              currentPage !== 'character' && (
+                <span className="absolute -top-1 right-0.5 px-1 py-0.5 rounded bg-[#D97706] text-white text-[8px] font-bold leading-none">
+                  UP
+                </span>
+              )}
           </button>
         </div>
       </div>
@@ -1287,6 +1420,20 @@ export default function App() {
         entry={selectedEncyclopediaEntry}
         onClose={() => setSelectedVegetableId(null)}
         onSelectMealRecord={(recordId) => setSelectedRecordId(recordId)}
+      />
+
+      {/* Character Level-Up Celebration Modal */}
+      <LevelUpModal
+        isOpen={Boolean(levelUpModalState)}
+        fromLevel={levelUpModalState?.fromLevel ?? 1}
+        progress={characterProgress}
+        showGoToCharacterButton={currentPage !== 'character'}
+        onGoToCharacter={async () => {
+          await handleCloseLevelUpModal();
+          setCurrentPage('character');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onClose={handleCloseLevelUpModal}
       />
     </div>
   );

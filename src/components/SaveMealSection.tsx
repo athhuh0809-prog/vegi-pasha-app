@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, BookmarkCheck, Calendar, Check, Loader2, NotebookPen, Sparkles } from 'lucide-react';
+import { BookOpen, BookmarkCheck, Calendar, Check, Loader2, NotebookPen, Sparkles, Sprout } from 'lucide-react';
 import type { MealType, SessionAnalysisEntry } from '../types/meal';
 import {
   getDefaultMealTypeByHour,
@@ -7,13 +7,21 @@ import {
   toLocalDateTimeInputValue,
 } from '../utils/mealDb';
 
+export interface SaveMealOutcome {
+  newlyUnlockedNames: string[];
+  expGained: number;
+  cappedByDailyLimit: boolean;
+  leveledUpTo: number | null;
+  characterName: string;
+}
+
 interface SaveMealSectionProps {
   entry: SessionAnalysisEntry;
   onSave: (payload: {
     dishName: string;
     mealType: MealType;
     eatenAt: string;
-  }) => Promise<string[]>;
+  }) => Promise<SaveMealOutcome>;
   onUpdateExisting: (payload: {
     recordId: string;
     dishName: string;
@@ -22,6 +30,7 @@ interface SaveMealSectionProps {
   }) => Promise<void>;
   onGoToRecords: () => void;
   onGoToEncyclopedia: () => void;
+  onGoToCharacter: () => void;
   existingRecord?: {
     id: string;
     dishName: string;
@@ -38,6 +47,7 @@ export function SaveMealSection({
   onUpdateExisting,
   onGoToRecords,
   onGoToEncyclopedia,
+  onGoToCharacter,
   existingRecord,
 }: SaveMealSectionProps) {
   const defaultDishName =
@@ -55,7 +65,7 @@ export function SaveMealSection({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [justUpdated, setJustUpdated] = useState(false);
-  const [justUnlockedNames, setJustUnlockedNames] = useState<string[]>([]);
+  const [saveOutcome, setSaveOutcome] = useState<SaveMealOutcome | null>(null);
 
   useEffect(() => {
     setDishName(existingRecord?.dishName ?? defaultDishName);
@@ -63,7 +73,7 @@ export function SaveMealSection({
     setEatenAt(existingRecord?.eatenAt ?? toLocalDateTimeInputValue());
     setSaveError(null);
     setJustUpdated(false);
-    setJustUnlockedNames([]);
+    setSaveOutcome(null);
   }, [entry.id, existingRecord?.id]);
 
   const totalNutrients = entry.editedResult.vegetables.reduce(
@@ -105,12 +115,12 @@ export function SaveMealSection({
         });
         setJustUpdated(true);
       } else {
-        const unlocked = await onSave({
+        const outcome = await onSave({
           dishName: cleanDishName,
           mealType,
           eatenAt: cleanEatenAt,
         });
-        setJustUnlockedNames(unlocked);
+        setSaveOutcome(outcome);
       }
     } catch (err) {
       setSaveError(
@@ -229,18 +239,26 @@ export function SaveMealSection({
                 <Check className="w-4 h-4 text-[#2D6A4F] shrink-0 mt-0.5" />
                 <span>
                   {justUpdated
-                    ? '修正内容で食事記録を更新し、野菜図鑑にも反映しました。'
+                    ? '修正内容で食事記録を更新し、図鑑・キャラクター育成にも反映しました。'
                     : 'この解析結果はブラウザ内に保存済みです（重複保存はされません）。'}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <button
                   type="button"
+                  onClick={onGoToCharacter}
+                  className="min-h-[44px] px-3.5 py-2 rounded-xl border border-[#DCE6DA] bg-white hover:bg-[#FBF8F1] text-[#2D6A4F] text-xs sm:text-sm font-medium inline-flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap"
+                >
+                  <Sprout className="w-4 h-4" />
+                  <span>育成を見る</span>
+                </button>
+                <button
+                  type="button"
                   onClick={onGoToEncyclopedia}
                   className="min-h-[44px] px-3.5 py-2 rounded-xl border border-[#DCE6DA] bg-white hover:bg-[#FBF8F1] text-[#2D6A4F] text-xs sm:text-sm font-medium inline-flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap"
                 >
                   <BookOpen className="w-4 h-4" />
-                  <span>野菜図鑑を見る</span>
+                  <span>野菜図鑑</span>
                 </button>
                 <button
                   type="button"
@@ -253,13 +271,34 @@ export function SaveMealSection({
               </div>
             </div>
 
-            {justUnlockedNames.length > 0 && (
+            {saveOutcome && (saveOutcome.expGained > 0 || saveOutcome.cappedByDailyLimit) && (
+              <div className="rounded-xl bg-white border border-[#DCE6DA] px-3.5 py-2.5 flex items-center gap-2 text-xs sm:text-sm text-[#1F2D24]">
+                <Sprout className="w-4 h-4 text-[#2D6A4F] shrink-0" />
+                <span className="tabular-nums">
+                  {saveOutcome.expGained > 0 ? (
+                    <>
+                      {saveOutcome.characterName}が{' '}
+                      <strong className="font-bold text-[#2D6A4F]">
+                        +{saveOutcome.expGained} EXP
+                      </strong>{' '}
+                      獲得しました！
+                      {saveOutcome.leveledUpTo ? `（Lv.${saveOutcome.leveledUpTo} にレベルアップ！）` : ''}
+                      {saveOutcome.cappedByDailyLimit ? ' ※1日の上限に到達' : ''}
+                    </>
+                  ) : (
+                    `${saveOutcome.characterName}は本日分の経験値上限に達しています（食事記録・図鑑には反映されました）。`
+                  )}
+                </span>
+              </div>
+            )}
+
+            {saveOutcome && saveOutcome.newlyUnlockedNames.length > 0 && (
               <div className="rounded-xl bg-white border border-[#DCE6DA] px-3.5 py-2.5 flex items-center gap-2 text-xs sm:text-sm text-[#1F2D24]">
                 <Sparkles className="w-4 h-4 text-[#D97706] shrink-0" />
                 <span>
                   野菜図鑑に新しく登録されました：
                   <strong className="font-bold text-[#2D6A4F] ml-1">
-                    {justUnlockedNames.join('・')}
+                    {saveOutcome.newlyUnlockedNames.join('・')}
                   </strong>
                 </span>
               </div>

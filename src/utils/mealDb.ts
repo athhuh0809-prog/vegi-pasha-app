@@ -3,6 +3,7 @@ import {
   resolveCatalogVegetable,
   VEGETABLE_CATALOG,
 } from '../data/vegetableCatalog';
+import type { CharacterProfile } from '../types/character';
 import type {
   DailyMealGroup,
   EncyclopediaData,
@@ -13,12 +14,15 @@ import type {
   SavedVegetableEntry,
   VegetableItem,
 } from '../types/meal';
+import { createDefaultCharacterProfile, DEFAULT_CHARACTER_NAME } from './characterEngine';
 
 const DB_NAME = 'vegepasha_db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_MEAL_RECORDS = 'mealRecords';
 const STORE_ENCYCLOPEDIA_META = 'encyclopediaMeta';
+const STORE_CHARACTER_PROFILE = 'characterProfile';
 const VIEWED_IDS_KEY = 'viewedVegetableIds';
+const CHARACTER_PROFILE_KEY = 'mainCharacter';
 
 export const MEAL_TYPE_LABELS: Record<MealType, string> = {
   breakfast: '朝食',
@@ -98,6 +102,9 @@ function openDatabase(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(STORE_ENCYCLOPEDIA_META)) {
         db.createObjectStore(STORE_ENCYCLOPEDIA_META, { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains(STORE_CHARACTER_PROFILE)) {
+        db.createObjectStore(STORE_CHARACTER_PROFILE, { keyPath: 'key' });
       }
     };
 
@@ -455,6 +462,77 @@ export function getNewlyUnlockableVegetableNames(
     }
   }
   return newNames;
+}
+
+export async function getCharacterProfile(): Promise<CharacterProfile> {
+  const db = await openDatabase();
+  try {
+    const existing = await new Promise<CharacterProfile | undefined>((resolve, reject) => {
+      const tx = db.transaction(STORE_CHARACTER_PROFILE, 'readonly');
+      const store = tx.objectStore(STORE_CHARACTER_PROFILE);
+      const req = store.get(CHARACTER_PROFILE_KEY);
+      req.onsuccess = () => resolve(req.result as CharacterProfile | undefined);
+      req.onerror = () =>
+        reject(req.error ?? new Error('キャラクター情報の読み込みに失敗しました。'));
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    const initial = createDefaultCharacterProfile();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_CHARACTER_PROFILE, 'readwrite');
+      const store = tx.objectStore(STORE_CHARACTER_PROFILE);
+      const req = store.put(initial);
+      req.onsuccess = () => resolve();
+      req.onerror = () =>
+        reject(req.error ?? new Error('キャラクター情報の初期化に失敗しました。'));
+    });
+    return initial;
+  } finally {
+    db.close();
+  }
+}
+
+export async function saveCharacterProfile(profile: CharacterProfile): Promise<CharacterProfile> {
+  const updated: CharacterProfile = {
+    ...profile,
+    key: CHARACTER_PROFILE_KEY,
+    updatedAt: new Date().toISOString(),
+  };
+  const db = await openDatabase();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_CHARACTER_PROFILE, 'readwrite');
+      const store = tx.objectStore(STORE_CHARACTER_PROFILE);
+      const req = store.put(updated);
+      req.onsuccess = () => resolve();
+      req.onerror = () =>
+        reject(req.error ?? new Error('キャラクター情報の保存に失敗しました。'));
+    });
+    return updated;
+  } finally {
+    db.close();
+  }
+}
+
+export async function updateCharacterName(rawName: string): Promise<CharacterProfile> {
+  const current = await getCharacterProfile();
+  const cleanName = rawName.trim().slice(0, 16) || DEFAULT_CHARACTER_NAME;
+  return saveCharacterProfile({
+    ...current,
+    name: cleanName,
+  });
+}
+
+export async function updateCharacterCelebratedLevel(level: number): Promise<CharacterProfile> {
+  const current = await getCharacterProfile();
+  if (current.lastCelebratedLevel === level) return current;
+  return saveCharacterProfile({
+    ...current,
+    lastCelebratedLevel: Math.max(1, level),
+  });
 }
 
 export function getDefaultMealTypeByHour(date = new Date()): MealType {
